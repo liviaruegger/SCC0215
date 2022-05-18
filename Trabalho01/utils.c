@@ -3,6 +3,10 @@
 #include <string.h>
 #include <ctype.h>
 
+
+
+// ================================ FUNÇÕES FORNECIDAS ===================================
+
 void readline(char* string){
     char c = 0;
 
