@@ -1,30 +1,70 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
 
+/**
+ * @brief Alocando memória dinamicamente, lê e armazena uma palavra da entrada
+ * padrão até encontrar um espaço, uma quebra de linha ou EOF.
+ * 
+ * @return ponteiro para a string lida (char *).
+ */
+char *read_word()
+{
+    char *string = (char *) malloc(sizeof(char));
+    int size = 0;
 
+    do
+    {
+        string[size] = fgetc(stdin);
+        size++;
 
-// ================================ FUNÇÕES FORNECIDAS ===================================
+        if (string[size - 1] != ' '  &&
+            string[size - 1] != '\r' &&
+            string[size - 1] != '\n' &&
+            string[size - 1] != EOF)
+            string = (char *) realloc(string, size + 1);
 
-void readline(char* string){
-    char c = 0;
+    } while (string[size - 1] != ' '  &&
+             string[size - 1] != '\r' &&
+             string[size - 1] != '\n' &&
+             string[size - 1] != EOF);
 
-    do{
-        c = (char) getchar();
+    if (string[size - 1] == '\r') fgetc(stdin);
 
-    } while(c == '\n' || c == '\r');
+    string[size - 1] = '\0';
 
-    int i = 0;
-
-    do{
-        string[i] = c;
-        i++;
-        c = getchar();
-    } while(c != '\n' && c != '\r');
-
-    string[i]  = '\0';
+    return string;
 }
+
+/**
+ * @brief Alocando memória dinamicamente, lê e armazena uma linha da entrada
+ * padrão até encontrar o caractere que foi passado como parâmetro.
+ * 
+ * @param c caractere de parada;
+ * @return ponteiro para a string lida (char *).
+ */
+char *read_until(char c)
+{
+    char *string = (char *) malloc(sizeof(char));
+    int size = 0;
+
+    do
+    {
+        string[size] = fgetc(stdin);
+        size++;
+
+        if (string[size - 1] != c)
+            string = (char *) realloc(string, size + 1);
+
+    } while (string[size - 1] != c);
+
+    string[size - 1] = '\0';
+
+    return string;
+}
+
+
+
+// ================================= FUNÇÃO FORNECIDA ====================================
 
 void binarioNaTela(char *nomeArquivoBinario) { /* Você não precisa entender o código dessa função. */
 
@@ -52,39 +92,4 @@ void binarioNaTela(char *nomeArquivoBinario) { /* Você não precisa entender o 
 	printf("%lf\n", (cs / (double) 100));
 	free(mb);
 	fclose(fs);
-}
-
-void scan_quote_string(char *str) {
-
-	/*
-	*	Use essa função para ler um campo string delimitado entre aspas (").
-	*	Chame ela na hora que for ler tal campo. Por exemplo:
-	*
-	*	A entrada está da seguinte forma:
-	*		nomeDoCampo "MARIA DA SILVA"
-	*
-	*	Para ler isso para as strings já alocadas str1 e str2 do seu programa, você faz:
-	*		scanf("%s", str1); // Vai salvar nomeDoCampo em str1
-	*		scan_quote_string(str2); // Vai salvar MARIA DA SILVA em str2 (sem as aspas)
-	*
-	*/
-
-	char R;
-
-	while((R = getchar()) != EOF && isspace(R)); // ignorar espaços, \r, \n...
-
-	if(R == 'N' || R == 'n') { // campo NULO
-		getchar(); getchar(); getchar(); // ignorar o "ULO" de NULO.
-		strcpy(str, ""); // copia string vazia
-	} else if(R == '\"') {
-		if(scanf("%[^\"]", str) != 1) { // ler até o fechamento das aspas
-			strcpy(str, "");
-		}
-		getchar(); // ignorar aspas fechando
-	} else if(R != EOF){ // vc tá tentando ler uma string que não tá entre aspas! Fazer leitura normal %s então, pois deve ser algum inteiro ou algo assim...
-		str[0] = R;
-		scanf("%s", &str[1]);
-	} else { // EOF
-		strcpy(str, "");
-	}
 }
