@@ -32,11 +32,15 @@ FILE *new_file(char *file_name)
 {
     FILE *fp = fopen(file_name, "wb");
 
-    fwrite("0", sizeof(char), 1, fp); // 0
-    fwrite(-1,  sizeof(int),  1, fp); // 1
+    int default_value = -1;
+
+    fwrite("0",            sizeof(char), 1, fp); // 0
+    fwrite(&default_value, sizeof(int),  1, fp); // 1
 
     fwrite("LISTAGEM DA FROTA DOS VEICULOS NO BRASIL", sizeof(char), 40, fp); // 5
     
+    default_value = 0;
+
     fwrite("CODIGO IDENTIFICADOR: ",   sizeof(char), 22, fp); // 45
     fwrite("ANO DE FABRICACAO: ",      sizeof(char), 19, fp); // 67
     fwrite("QUANTIDADE DE VEICULOS: ", sizeof(char), 24, fp); // 86
@@ -47,14 +51,14 @@ FILE *new_file(char *file_name)
     fwrite("MARCA DO VEICULO: ",       sizeof(char), 18, fp); // 136
     fwrite("2",                        sizeof(char),  1, fp); // 154
     fwrite("MODELO DO VEICULO: ",      sizeof(char), 19, fp); // 155
-    fwrite(0,                          sizeof(int),   1, fp); // 174
-    fwrite(0,                          sizeof(int),   1, fp); // 178
+    fwrite(&default_value,             sizeof(int),   1, fp); // 174
+    fwrite(&default_value,             sizeof(int),   1, fp); // 178
 
-    return fp;    
+    return fp;
 }
 
 reg_t1 read_register(FILE *fp)
 {
-    
+       
 
 }
