@@ -18,6 +18,9 @@ int main()
     char *file_type = read_word(stdin);
     char *input_file = read_word(stdin);
     char *output_file = NULL;
+
+    FILE *input_fp = fopen(input_file, "r");
+    char *input_header = read_until(input_fp, '\n');
     
     switch (func)
     {
@@ -74,6 +77,7 @@ int main()
 
     free(file_type);
     free(input_file);
+    free(input_header);
 
     return 0;
 }
