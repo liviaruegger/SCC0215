@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "fixed.h"
 
 // --- ENTRADAS:
 // FUNC 1 -> 1 tipoArquivo arquivoEntrada.csv arquivoSaida.bin
