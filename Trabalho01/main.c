@@ -15,14 +15,14 @@ int main()
     scanf("%d", &func);
     getchar(); // Consome o '\n'
 
-    char *file_type = read_word();
-    char *input_file = read_word();
+    char *file_type = read_word(stdin);
+    char *input_file = read_word(stdin);
     char *output_file = NULL;
     
     switch (func)
     {
         case 1:
-            output_file = read_word();
+            output_file = read_word(stdin);
             
             /* code */
 
@@ -39,13 +39,13 @@ int main()
 
             for (int i = 0; i < n; i++)
             {
-                char *field_name = read_word();
+                char *field_name = read_word(stdin);
                 char *field_content = NULL;
 
                 char c = getchar();
                 if (c == '"')
                 {
-                    field_content = read_until('"');
+                    field_content = read_until(stdin, '"');
                     getchar(); // Consome o '\n'
 
                     // TODO: chamar funcao
