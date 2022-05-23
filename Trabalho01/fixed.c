@@ -136,7 +136,7 @@ void read_and_write_register(FILE *input, FILE *output)
     reg_t1 *reg = read_register_from_csv(input);
 
     // Campos de tamanho fixo
-    fwrite(reg->removed,        sizeof(char),     1, output); // 1
+    fwrite(&reg->removed,       sizeof(char),     1, output); // 1
     fwrite(&reg->register_size, sizeof(int),      1, output); // 4    5
     fwrite(&reg->next,          sizeof(long int), 1, output); // 8   13
     fwrite(&reg->id,            sizeof(int),      1, output); // 4   17
