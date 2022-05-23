@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "fixed.h"
 
 // --- ENTRADAS:
 // FUNC 1 -> 1 tipoArquivo arquivoEntrada.csv arquivoSaida.bin
@@ -14,14 +15,17 @@ int main()
     scanf("%d", &func);
     getchar(); // Consome o '\n'
 
-    char *file_type = read_word();
-    char *input_file = read_word();
+    char *file_type = read_word(stdin);
+    char *input_file = read_word(stdin);
     char *output_file = NULL;
+
+    FILE *input_fp = fopen(input_file, "r");
+    char *input_header = read_until(input_fp, '\n');
     
     switch (func)
     {
         case 1:
-            output_file = read_word();
+            output_file = read_word(stdin);
             
             /* code */
 
@@ -38,13 +42,13 @@ int main()
 
             for (int i = 0; i < n; i++)
             {
-                char *field_name = read_word();
+                char *field_name = read_word(stdin);
                 char *field_content = NULL;
 
                 char c = getchar();
                 if (c == '"')
                 {
-                    field_content = read_until('"');
+                    field_content = read_until(stdin, '"');
                     getchar(); // Consome o '\n'
 
                     // TODO: chamar funcao
@@ -73,6 +77,7 @@ int main()
 
     free(file_type);
     free(input_file);
+    free(input_header);
 
     return 0;
 }
