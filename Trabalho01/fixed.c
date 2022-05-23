@@ -5,27 +5,27 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "fixed.h"
+#include "utils.h"
 
 typedef struct register_type1
 {
-    char removed[1];
+    char removed;
     int  register_size;
     long int next;
 
     int  id;
     int  year;
     int  qtt;
-    char state[2];
+    char *state;
 
     int  city_namesize;
     char *city;
     
-    char *brand;
-    char *model;
-
     int  brand_namesize;
+    char *brand;
+
     int  model_namesize;
+    char *model;
 }   reg_t1;
 
 FILE *new_file(char *file_name)
@@ -57,8 +57,87 @@ FILE *new_file(char *file_name)
     return fp;
 }
 
-reg_t1 read_register(FILE *fp)
+reg_t1 *read_register_from_csv(FILE *fp)
 {
-       
+    reg_t1 *reg = malloc(sizeof(reg_t1));
+    reg->register_size = 0;
 
+    reg->removed = '0';
+    reg->register_size += sizeof(reg->removed);
+
+    reg->next = -1;
+    reg->register_size += sizeof(reg->next);
+
+    char *id = read_until(fp, ',');
+    reg->id = atoi(id);
+    reg->register_size += sizeof(reg->id);
+    free(id);
+    
+    char *year = read_until(fp, ',');
+    if (year[0] >= '0' && year[0] <= '9') reg->year = atoi(year);
+    else reg->year = -1;
+    reg->register_size += sizeof(reg->year);
+    free(year);
+
+    char *city = read_until(fp, ',');
+    if (city[0] != '\0') reg->city = city;
+    else reg->city = NULL; // Se for nulo, não será armazenado no arquivo de dados
+    if (reg->city != NULL) reg->register_size += sizeof(reg->city - 1);
+
+    if (reg->city != NULL) reg->city_namesize = sizeof(reg->city - 1);
+    else reg->city_namesize = -1;
+
+    char *qtt = read_until(fp, ',');
+    if (qtt[0] >= '0' && qtt[0] <= '9') reg->qtt = atoi(qtt);
+    else reg->qtt = -1;
+    reg->register_size += sizeof(reg->qtt);
+    free(qtt);
+
+    char *state = read_until(fp, ',');
+    if (state[0] != '\0') reg->state = state;
+    else reg->state = NULL; // Se for nulo, não será armazenado no arquivo de dados
+    if (reg->state != NULL) reg->register_size += sizeof(reg->state - 1);
+
+    char *brand = read_until(fp, ',');
+    if (brand[0] != '\0') reg->brand = brand;
+    else reg->brand = NULL; // Se for nulo, não será armazenado no arquivo de dados
+    if (reg->brand != NULL) reg->register_size += sizeof(reg->brand - 1);
+
+    if (reg->brand != NULL) reg->brand_namesize = sizeof(reg->brand - 1);
+    else reg->brand_namesize = -1;
+
+    char *model = read_until(fp, '\n');
+    if (model[0] != '\0') reg->model = model;
+    else reg->model = NULL; // Se for nulo, não será armazenado no arquivo de dados
+    if (reg->model != NULL) reg->register_size += sizeof(reg->model - 1);
+
+    if (reg->model != NULL) reg->model_namesize = sizeof(reg->model - 1);
+    else reg->city_namesize = -1;
+
+    return reg;
+}
+
+void free_register(reg_t1 *reg)
+{
+    free(reg->state);
+    free(reg->city);
+    free(reg->brand);
+    free(reg->model);
+    free(reg);
+}
+
+void read_and_write_register(FILE *input, FILE *output)
+{
+    reg_t1 *reg = read_register_from_csv(input);
+
+    fwrite(reg->removed,       sizeof(char),     1, output);
+    fwrite(reg->register_size, sizeof(int),      1, output);
+    fwrite(reg->next,          sizeof(long int), 1, output);
+    fwrite(reg->id,            sizeof(int),      1, output);
+    fwrite(reg->year,          sizeof(int),      1, output);
+    fwrite(reg->qtt,           sizeof(int),      1, output);
+
+    // continuar
+
+    free_register(reg);
 }
