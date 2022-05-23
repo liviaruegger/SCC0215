@@ -183,6 +183,8 @@ void read_and_write_all(FILE *input, FILE *output)
         ungetc(c, input);
         read_and_write_register(input, output);
     }
+
+    fclose(input);
 }
 
 void close_file(FILE *fp)

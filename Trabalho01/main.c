@@ -27,9 +27,19 @@ int main()
         case 1:
             output_file = read_word(stdin);
             
-            /* code */
+            if (file_type[4] == '1')
+            {
+                FILE *output_fp = new_file(output_file);
+                read_and_write_all(input_fp, output_fp);
+                close_file(output_fp);
+            }
+            else if (file_type[4] == '2')
+            {
 
-            free(output_file);            
+            }
+
+            binarioNaTela(output_file);
+            free(output_file);       
             break;
         
         case 2:
