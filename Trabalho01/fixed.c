@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "utils.h"
 
 #define HEADER_SIZE 182
@@ -12,8 +13,7 @@
 typedef struct register_type1
 {
     char removed;
-    int  register_size;
-    long int next;
+    int next;
 
     int  id;
     int  year;
@@ -62,59 +62,77 @@ FILE *new_file(char *file_name)
 reg_t1 *read_register_from_csv(FILE *fp)
 {
     reg_t1 *reg = malloc(sizeof(reg_t1));
-    reg->register_size = 0;
 
     reg->removed = '0';
-    reg->register_size += sizeof(reg->removed);
 
     reg->next = -1;
-    reg->register_size += sizeof(reg->next);
 
     char *id = read_until(fp, ',');
     reg->id = atoi(id);
-    reg->register_size += sizeof(reg->id);
     free(id);
     
     char *year = read_until(fp, ',');
     if (year[0] >= '0' && year[0] <= '9') reg->year = atoi(year);
     else reg->year = -1;
-    reg->register_size += sizeof(reg->year);
     free(year);
 
     char *city = read_until(fp, ',');
-    if (city[0] != '\0') reg->city = city;
-    else reg->city = NULL; // Se for nulo, não será armazenado no arquivo de dados
-    if (reg->city != NULL) reg->register_size += sizeof(reg->city - 1);
+    if (city[0] != '\0')
+    {
+        reg->city = city;
+    }
+    else // Se for nulo, não será armazenado no arquivo de dados
+    {
+        reg->city = NULL;
+        free(city);
+    }
 
-    if (reg->city != NULL) reg->city_namesize = sizeof(reg->city - 1);
+    if (reg->city) reg->city_namesize = strlen(reg->city);
     else reg->city_namesize = 0;
 
     char *qtt = read_until(fp, ',');
     if (qtt[0] >= '0' && qtt[0] <= '9') reg->qtt = atoi(qtt);
     else reg->qtt = -1;
-    reg->register_size += sizeof(reg->qtt);
     free(qtt);
 
     char *state = read_until(fp, ',');
-    if (state[0] != '\0') reg->state = state;
-    else reg->state = NULL; // Se for nulo, não será armazenado no arquivo de dados
-    if (reg->state != NULL) reg->register_size += sizeof(reg->state - 1);
+    if (state[0] != '\0')
+    {
+        reg->state = state;
+    }
+    else // Se for nulo, não será armazenado no arquivo de dados
+    {
+        reg->state = NULL;
+        free(state);
+    }
 
     char *brand = read_until(fp, ',');
-    if (brand[0] != '\0') reg->brand = brand;
-    else reg->brand = NULL; // Se for nulo, não será armazenado no arquivo de dados
-    if (reg->brand != NULL) reg->register_size += sizeof(reg->brand - 1);
+    if (brand[0] != '\0')
+    {
+        reg->brand = brand;
+    }
+    else // Se for nulo, não será armazenado no arquivo de dados
+    {
+        reg->brand = NULL;
+        free(brand);
+    }
 
-    if (reg->brand != NULL) reg->brand_namesize = sizeof(reg->brand - 1);
+    if (reg->brand) reg->brand_namesize = strlen(reg->brand);
     else reg->brand_namesize = 0;
 
-    char *model = read_until(fp, '\n');
-    if (model[0] != '\0') reg->model = model;
-    else reg->model = NULL; // Se for nulo, não será armazenado no arquivo de dados
-    if (reg->model != NULL) reg->register_size += sizeof(reg->model - 1);
+    char *model = read_line(fp);
+    if (model[0] != '\0')
+    {
+        reg->model = model;
+    }
+    else // Se for nulo, não será armazenado no arquivo de dados
+    {
+        reg->model = NULL;
+        free(model);
+    }
 
-    if (reg->model != NULL) reg->model_namesize = sizeof(reg->model - 1);
-    else reg->city_namesize = 0;
+    if (reg->model) reg->model_namesize = strlen(reg->model);
+    else reg->model_namesize = 0;
 
     return reg;
 }
@@ -134,55 +152,69 @@ void free_register(reg_t1 *reg)
 void read_and_write_register(FILE *input, FILE *output)
 {
     reg_t1 *reg = read_register_from_csv(input);
-
-    // Campos de tamanho fixo
-    fwrite(&reg->removed,       sizeof(char),     1, output); // 1
-    fwrite(&reg->register_size, sizeof(int),      1, output); // 4    5
-    fwrite(&reg->next,          sizeof(long int), 1, output); // 8   13
-    fwrite(&reg->id,            sizeof(int),      1, output); // 4   17
-    fwrite(&reg->year,          sizeof(int),      1, output); // 4   21
-    fwrite(&reg->qtt,           sizeof(int),      1, output); // 4   25
-    fwrite(&reg->qtt,           sizeof(int),      1, output); // 4   29
-    fwrite(reg->state,          sizeof(char),     2, output); // 2   31
     
-    int bytes_written = 31;
+    // Campos de tamanho fixo
+    fwrite(&reg->removed, sizeof(char), 1, output);
+    fwrite(&reg->next,    sizeof(int),  1, output);
+    fwrite(&reg->id,      sizeof(int),  1, output);
+    fwrite(&reg->year,    sizeof(int),  1, output);
+    fwrite(&reg->qtt,     sizeof(int),  1, output);
+
+    if (reg->state) fwrite(reg->state, sizeof(char), 2, output);
+    else fwrite ("$$", sizeof(char), 2, output);
+
+    int bytes_written = 19;
 
     // Campos de tamanho variável
-    fwrite(&reg->city_namesize, sizeof(int),  1, output);
-    fwrite("0",                 sizeof(char), 1, output);
-    fwrite(reg->city,           sizeof(char), reg->city_namesize, output);
-    bytes_written += 4 + 1 + reg->city_namesize;
+    if (reg->city_namesize > 0)
+    {
+        fwrite(&reg->city_namesize, sizeof(int),  1, output);
+        fwrite("0",                 sizeof(char), 1, output);
+        fwrite(reg->city,           sizeof(char), reg->city_namesize, output);
+        bytes_written += 4 + 1 + reg->city_namesize;
+    }
 
-    fwrite(&reg->brand_namesize, sizeof(int),  1, output);
-    fwrite("1",                  sizeof(char), 1, output);
-    fwrite(reg->brand,           sizeof(char), reg->brand_namesize, output);
-    bytes_written += 4 + 1 + reg->brand_namesize;
+    if (reg && reg->brand_namesize && reg->brand)
+    {
+        fwrite(&reg->brand_namesize, sizeof(int),  1, output);
+        fwrite("1",                  sizeof(char), 1, output);
+        fwrite(reg->brand,           sizeof(char), reg->brand_namesize, output);
+        bytes_written += 4 + 1 + reg->brand_namesize;
+    }
 
-    fwrite(&reg->model_namesize, sizeof(int),  1, output);
-    fwrite("2",                  sizeof(char), 1, output);
-    fwrite(reg->model,           sizeof(char), reg->model_namesize, output);
-    bytes_written += 4 + 1 + reg->model_namesize;
+    if (reg && reg->model_namesize && reg->model)
+    {
+        fwrite(&reg->model_namesize, sizeof(int),  1, output);
+        fwrite("2",                  sizeof(char), 1, output);
+        fwrite(reg->model,           sizeof(char), reg->model_namesize, output);
+        bytes_written += 4 + 1 + reg->model_namesize;
+    }
 
     while (bytes_written < 97)
     {
         fwrite("$", sizeof(char), 1, output);
         bytes_written++;
     }
-    
-    // DEBUG
-    if (bytes_written > 97) printf("DEU PROBLEMA AQUI! ESTOUROU TAMANHO DO REGISTRO\n");
 
     free_register(reg);
 }
 
 void read_and_write_all(FILE *input, FILE *output)
 {   
+    int register_count = 0;
+
     char c = fgetc(input);
     while (c != EOF)
     {
         ungetc(c, input);
         read_and_write_register(input, output);
+        register_count++;
+
+        c = fgetc(input);
     }
+
+    fseek(output, 174, SEEK_SET);
+    fwrite(&register_count, sizeof(int), 1, output);
 
     fclose(input);
 }
@@ -191,13 +223,6 @@ void close_file(FILE *fp)
 {
     fseek(fp, 0, SEEK_SET);
     fwrite("1", sizeof(char), 1, fp);
-
-    fseek(fp, 0, SEEK_END);
-    long int file_size = ftell(fp);
-    int next_rrn = ((file_size - HEADER_SIZE) / 97);
-
-    fseek(fp, 174, SEEK_SET);
-    fwrite(&next_rrn, sizeof(int), 1, fp);
 
     fclose(fp);
 }
