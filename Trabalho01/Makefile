@@ -10,4 +10,4 @@ test: all
 	./test.sh
 
 zip: $(objects)
-	zip ex01.zip $(objects) utils.h fixed.h variable.h Makefile
+	zip 8586691_12542689.zip $(objects) utils.h fixed.h variable.h Makefile
