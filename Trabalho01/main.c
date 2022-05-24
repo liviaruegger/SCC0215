@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "fixed.h"
+#include "variable.h"
 
 // --- ENTRADAS:
 // FUNC 1 -> 1 tipoArquivo arquivoEntrada.csv arquivoSaida.bin
@@ -14,37 +16,57 @@ int main()
     scanf("%d", &func);
     getchar(); // Consome o '\n'
 
-    char *file_type = read_word();
-    char *input_file = read_word();
+    char *file_type = read_word(stdin);
+    char *input_file = read_word(stdin);
     char *output_file = NULL;
-    
+
+    FILE *input_fp = fopen(input_file, "rb");
+    char *input_header = read_until(input_fp, '\n');
+
     switch (func)
     {
         case 1:
-            output_file = read_word();
-            
-            /* code */
+            output_file = read_word(stdin);
 
-            free(output_file);            
+            if (file_type[4] == '1')
+            {
+                FILE *output_fp = new_file(output_file);
+                read_and_write_all(input_fp, output_fp);
+                close_file(output_fp);
+            }
+            else if (file_type[4] == '2')
+            {
+                FILE *saida = new_type2_file(output_file);
+                read_and_write_register_t2(input_fp, saida);
+            }
+
+            binarioNaTela(output_file);
+            free(output_file);
             break;
-        
+
         case 2:
-            /* code */
+            if (file_type[4] == '1')
+            {
+
+            }
+            else if (file_type[4] == '2')
+              print_t2_register_from_file(input_fp);
+
             break;
-        
+
         case 3:
             scanf("%d", &n);
             getchar(); // Consome o '\n'
 
             for (int i = 0; i < n; i++)
             {
-                char *field_name = read_word();
+                char *field_name = read_word(stdin);
                 char *field_content = NULL;
 
                 char c = getchar();
                 if (c == '"')
                 {
-                    field_content = read_until('"');
+                    field_content = read_until(stdin, '"');
                     getchar(); // Consome o '\n'
 
                     // TODO: chamar funcao
@@ -61,9 +83,9 @@ int main()
 
                 free(field_name);
             }
-            
+
             break;
-        
+
         case 4:
             scanf("%d", &rrn);
             /* code */
@@ -73,6 +95,7 @@ int main()
 
     free(file_type);
     free(input_file);
+    free(input_header);
 
     return 0;
 }
