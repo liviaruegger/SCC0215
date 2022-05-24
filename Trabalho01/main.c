@@ -20,7 +20,14 @@ int main()
     char *output_file = NULL;
 
     FILE *input_fp = fopen(input_file, "r");
-    char *input_header = read_until(input_fp, '\n');
+    
+    if (!input_fp)
+    {
+        printf("Falha no processamento do arquivo.");
+        free(file_type);
+        free(input_file);
+        return 0;
+    }
     
     switch (func)
     {
@@ -87,7 +94,6 @@ int main()
 
     free(file_type);
     free(input_file);
-    free(input_header);
 
     return 0;
 }
