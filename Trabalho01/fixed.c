@@ -13,7 +13,7 @@
 typedef struct register_type1
 {
     char removed;
-    int next;
+    int  next;
 
     int  id;
     int  year;
