@@ -40,7 +40,7 @@ FILE *new_type2_file(char *file_name)
 {
   FILE *fp = fopen(file_name, "wb");
 
-  long int temp_value = -1; // integer argument for fwrite
+  long int temp_value = -1; // Integer argument for fwrite
 
   // 0 - status
   fwrite("0",                                         sizeof(char), 1, fp);
@@ -74,8 +74,6 @@ FILE *new_type2_file(char *file_name)
   // 186 - numRemovedRegisters
   int temp_value2 = 0;
   fwrite(&temp_value2,                                 sizeof(int), 1, fp);
-
-  fseek(fp, 190, SEEK_SET);
 
   return fp;
 }
@@ -115,11 +113,11 @@ reg_t2 *read_t2_register_from_csv(FILE *fp)
     reg->codC5 = "0";
     reg->register_size += 1;
   }
-  else{
+  else
+  {
     reg->city_namesize = -1;
     free(cidade);
   }
-
 
   char *qtt = read_until(fp, ',');
   if(qtt[0] >= '0' && qtt[0] <= '9')
@@ -132,7 +130,8 @@ reg_t2 *read_t2_register_from_csv(FILE *fp)
   char *sigla = read_until(fp, ',');
   if(sigla[0] != '\0')
     reg->state = sigla;
-  else{
+  else
+  {
     reg->state = "$$";
     free(sigla);
   }
@@ -171,59 +170,192 @@ reg_t2 *read_t2_register_from_csv(FILE *fp)
   return reg;
 }
 
-
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 void read_and_write_register_t2(FILE *input, FILE *output)
 {
+  // Move file pointer to the first register.
   fseek(input, 61, SEEK_SET);
-  char c;
-  do{
+  char c; // EOF verifier.
+
+  do
+  {
+    // Get data from csv and store it in struct reg_t2.
     reg_t2 *reg = read_t2_register_from_csv(input);
 
-    fwrite(&reg->removed, sizeof(char), 1, output);
-    fwrite(&reg->register_size, sizeof(int), 1, output);
-    fwrite(&reg->next, sizeof(long int), 1, output);
-    fwrite(&reg->id, sizeof(int), 1, output);
-    fwrite(&reg->year, sizeof(int), 1, output);
-    fwrite(&reg->qtt, sizeof(int), 1, output);
-    fwrite(reg->state, sizeof(char), 2, output);
+    // Write the elements from the struct in the binary file.
+    fwrite(&reg->removed,         sizeof(char), 1, output);
+    fwrite(&reg->register_size,   sizeof(int), 1, output);
+    fwrite(&reg->next,            sizeof(long int), 1, output);
+    fwrite(&reg->id,              sizeof(int), 1, output);
+    fwrite(&reg->year,            sizeof(int), 1, output);
+    fwrite(&reg->qtt,             sizeof(int), 1, output);
+    fwrite(reg->state,            sizeof(char), 2, output);
     if(reg->state != "$$")
       free(reg->state);
 
-    if(reg->city_namesize != -1){
+    if(reg->city_namesize != -1)
+    {
       fwrite(&reg->city_namesize, sizeof(int), 1, output);
-      fwrite(reg->codC5, sizeof(char), 1, output);
-      fwrite(reg->city, sizeof(char), reg->city_namesize, output);
+      fwrite(reg->codC5,          sizeof(char), 1, output);
+      fwrite(reg->city,           sizeof(char), reg->city_namesize, output);
       free(reg->city);
     }
 
-    if(reg->brand_namesize != -1){
-      fwrite(&reg->brand_namesize, sizeof(int), 1, output);
-      fwrite(reg->codC6, sizeof(char), 1, output);
-      fwrite(reg->brand, sizeof(char), reg->brand_namesize, output);
+    if(reg->brand_namesize != -1)
+    {
+      fwrite(&reg->brand_namesize,  sizeof(int), 1, output);
+      fwrite(reg->codC6,            sizeof(char), 1, output);
+      fwrite(reg->brand,            sizeof(char), reg->brand_namesize, output);
       free(reg->brand);
     }
 
-    if(reg->model_namesize != -1){
-      fwrite(&reg->model_namesize, sizeof(int), 1, output);
-      fwrite(reg->codC7, sizeof(char), 1, output);
-      fwrite(reg->model, sizeof(char), reg->model_namesize, output);
+    if(reg->model_namesize != -1)
+    {
+      fwrite(&reg->model_namesize,  sizeof(int), 1, output);
+      fwrite(reg->codC7,            sizeof(char), 1, output);
+      fwrite(reg->model,            sizeof(char), reg->model_namesize, output);
       free(reg->model);
     }
 
     free(reg);
 
+    // Verify EOF.
     c = fgetc(input);
-    if(c != EOF){
+    if(c != EOF)
+    {
       fputc(c, input);
       fseek(input, -1, SEEK_CUR);
     }
   } while(c != EOF);
 
-  long int temp = (long int)ftell(output);
-  fseek(output, 178, SEEK_SET);
+  // Store nextByteOffset and write it on the binary file.
+  long int temp = ftell(output);
+  fseek(output, 178, SEEK_SET); // nextByteOffset starts in byte 178.
   fwrite(&temp, sizeof(long int), 1, output);
 
+  // Finish binary file write.
   fseek(output, 0, SEEK_SET);
-  fwrite("1",                                         sizeof(char), 1, output);
+  fwrite("1", sizeof(char), 1, output);
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+void print_t2_register(reg_t2 *reg)
+{
+  printf("MARCA DO VEICULO: ");
+  if(reg->brand_namesize != -1)
+  {
+    printf("%s\n", reg->brand);
+    free(reg->codC6);
+    free(reg->brand);
+  }
+  else
+    printf("NAO PREENCHIDO\n");
+
+  printf("MODELO DO VEICULO: ");
+  if(reg->model_namesize != -1)
+  {
+    printf("%s\n", reg->model);
+    free(reg->codC7);
+    free(reg->model);
+  }
+  else
+    printf("NAO PREENCHIDO\n");
+
+  printf("ANO DE FABRICACAO: ");
+  if(reg->year != -1)
+    printf("%d\n", reg->year);
+    else
+      printf("NAO PREENCHIDO\n");
+
+  printf("NOME DA CIDADE: ");
+  if(reg->city_namesize != -1)
+  {
+    printf("%s\n", reg->city);
+    free(reg->codC5);
+    free(reg->city);
+  }
+  else
+    printf("NAO PREENCHIDO\n");
+
+  printf("QUANTIDADE DE VEICULOS: ");
+  if(reg->qtt != -1)
+    printf("%d\n", reg->qtt);
+  else
+    printf("NAO PREENCHIDO\n");
+
+  printf("\n");
+
+  free(reg->state); // Aloccated, but not printed.
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+void print_t2_register_from_file(FILE *fp)
+{
+  char c;
+  reg_t2 *reg = malloc(sizeof(reg_t2));
+  fseek(fp, 190, SEEK_SET); // Move file pointer to the first register.
+
+  do
+  {
+    // Status verification
+    c = fgetc(fp);
+    if(c == '0')
+    {
+      // Read data from binary file and store it in struct.
+      reg->removed = '0';
+      fread(&reg->register_size, sizeof(int), 1, fp);
+      fread(&reg->next, sizeof(long int), 1, fp);
+      fread(&reg->id, sizeof(int), 1, fp);
+      fread(&reg->year, sizeof(int), 1, fp);
+      fread(&reg->qtt, sizeof(int), 1, fp);
+      reg->state = calloc(3, sizeof(char));
+      fread(reg->state, sizeof(char), 2, fp);
+
+      reg->city_namesize = -1;
+      reg->brand_namesize = -1;
+      reg->model_namesize = -1;
+
+      // sizeof(next + id + year + qtt + state)
+      int current_size = 22;
+      while(reg->register_size - current_size != 0)
+      {
+        int size;
+        char *cod = calloc(2, sizeof(char));
+
+        fread(&size, sizeof(int), 1, fp);
+        fread(cod, sizeof(char), 1, fp);
+
+        // codC5 - city
+        if(strcmp(cod, "0") == 0)
+        {
+          reg->city_namesize = size;
+          reg->codC5 = cod;
+          reg->city = calloc((reg->city_namesize + 1), sizeof(char));
+          fread(reg->city, sizeof(char), reg->city_namesize, fp);
+        }
+        // cod6 - brand
+        else if(strcmp(cod, "1") == 0){
+          reg->brand_namesize = size;
+          reg->codC6 = cod;
+          reg->brand = calloc((reg->brand_namesize + 1), sizeof(char));
+          fread(reg->brand, sizeof(char), reg->brand_namesize, fp);
+        }
+        // cod7 - model
+        else{
+          reg->model_namesize = size;
+          reg->codC7 = cod;
+          reg->model = calloc((reg->model_namesize + 1), sizeof(char));
+          fread(reg->model, sizeof(char), reg->model_namesize, fp);
+        }
+
+        // += sizeof(int + byte + variable)
+        current_size += 4 + 1 + size;
+      }
+      print_t2_register(reg);
+    }
+  } while(c != EOF);
+  free(reg);
 }
