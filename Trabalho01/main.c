@@ -19,7 +19,9 @@ int main()
     char *input_file = read_word(stdin);
     char *output_file = NULL;
 
-    FILE *input_fp = fopen(input_file, "r");
+    FILE *input_fp = NULL;
+    if (func == 1) input_fp = fopen(input_file, "r");
+    else input_fp = fopen(input_file, "rb");
     
     if (!input_fp)
     {
@@ -68,7 +70,7 @@ int main()
                     field_content = read_until(stdin, '"');
                     getchar(); // Consome o '\n'
 
-                    // TODO: chamar funcao
+                    // TODO: chamar funcao de acordo com tipo de arquivo
 
                     free(field_content);
                 }
@@ -77,7 +79,8 @@ int main()
                     ungetc(c, stdin);
                     int value;
                     scanf("%d", &value);
-                    // TODO: chamar funcao
+
+                    // TODO: chamar funcao de acordo com tipo de arquivo
                 }
 
                 free(field_name);
@@ -87,8 +90,7 @@ int main()
         
         case 4:
             scanf("%d", &rrn);
-            /* code */
-
+            print_type1_register(input_fp, rrn);
             break;
     }
 
