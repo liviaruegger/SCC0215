@@ -37,6 +37,39 @@ char *read_word(FILE *stream)
 }
 
 /**
+ * @brief Alocando memória dinamicamente, lê e armazena uma linha do arquivo de
+ * entrada até encontrar uma quebra de linha ou EOF.
+ * 
+ * @param stream entrada (arquivo ou entrada padrão);
+ * @return ponteiro para a string lida (char *).
+ */
+char *read_line(FILE *stream)
+{
+    char *string = (char *) malloc(sizeof(char));
+    int size = 0;
+
+    do
+    {
+        string[size] = fgetc(stream);
+        size++;
+
+        if (string[size - 1] != '\r' &&
+            string[size - 1] != '\n' &&
+            string[size - 1] != EOF)
+            string = (char *) realloc(string, size + 1);
+
+    } while (string[size - 1] != '\r' &&
+             string[size - 1] != '\n' &&
+             string[size - 1] != EOF);
+
+    if (string[size - 1] == '\r') fgetc(stream);
+
+    string[size - 1] = '\0';
+
+    return string;
+}
+
+/**
  * @brief Alocando memória dinamicamente, lê e armazena uma linha do arquivo de 
  * entrada até encontrar o caractere que foi passado como parâmetro.
  * 
