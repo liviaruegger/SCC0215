@@ -29,9 +29,9 @@ int main()
             
             if (file_type[4] == '1')
             {
-                FILE *output_fp = new_file(output_file);
-                read_and_write_all(input_fp, output_fp);
-                close_file(output_fp);
+                FILE *output_fp = new_type1_file(output_file);
+                read_and_write_all_type1(input_fp, output_fp);
+                close_type1_file(output_fp);
             }
             else if (file_type[4] == '2')
             {
