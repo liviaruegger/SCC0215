@@ -23,7 +23,7 @@ int main()
     FILE *input_fp = NULL;
     if (func == 1) input_fp = fopen(input_file, "r");
     else input_fp = fopen(input_file, "rb");
-
+  
     if (!input_fp)
     {
         printf("Falha no processamento do arquivo.");
@@ -31,7 +31,7 @@ int main()
         free(input_file);
         return 0;
     }
-
+  
     switch (func)
     {
         case 1:
@@ -65,7 +65,7 @@ int main()
                 print_t2_register_from_file(input_fp);
             }
             break;
-
+        
         case 3:
             if (file_type[4] == '1')
             {
@@ -110,8 +110,7 @@ int main()
 
         case 4:
             scanf("%d", &rrn);
-            /* code */
-
+            print_type1_register(input_fp, rrn);
             break;
     }
 

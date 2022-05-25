@@ -30,7 +30,7 @@ typedef struct register_type1
     char *model;
 }   reg_t1;
 
-FILE *new_file(char *file_name)
+FILE *new_type1_file(char *file_name)
 {
     FILE *fp = fopen(file_name, "wb");
 
@@ -59,7 +59,7 @@ FILE *new_file(char *file_name)
     return fp;
 }
 
-reg_t1 *read_register_from_csv(FILE *fp)
+static reg_t1 *read_register_from_csv(FILE *fp)
 {
     reg_t1 *reg = malloc(sizeof(reg_t1));
 
@@ -100,10 +100,12 @@ reg_t1 *read_register_from_csv(FILE *fp)
     {
         reg->state = state;
     }
-    else // Se for nulo, não será armazenado no arquivo de dados
+    else
     {
-        reg->state = NULL;
         free(state);
+        reg->state = malloc(sizeof(char) * 2);
+        reg->state[0] = '$';
+        reg->state[1] = '$';
     }
 
     char *brand = read_until(fp, ',');
@@ -137,7 +139,7 @@ reg_t1 *read_register_from_csv(FILE *fp)
     return reg;
 }
 
-void free_register(reg_t1 *reg)
+static void free_register(reg_t1 *reg)
 {   
     if (reg)
     {
@@ -149,7 +151,7 @@ void free_register(reg_t1 *reg)
     }
 }
 
-void read_and_write_register(FILE *input, FILE *output)
+static void read_and_write_register(FILE *input, FILE *output)
 {
     reg_t1 *reg = read_register_from_csv(input);
     
@@ -159,9 +161,7 @@ void read_and_write_register(FILE *input, FILE *output)
     fwrite(&reg->id,      sizeof(int),  1, output);
     fwrite(&reg->year,    sizeof(int),  1, output);
     fwrite(&reg->qtt,     sizeof(int),  1, output);
-
-    if (reg->state) fwrite(reg->state, sizeof(char), 2, output);
-    else fwrite ("$$", sizeof(char), 2, output);
+    fwrite(reg->state,    sizeof(char), 2, output);
 
     int bytes_written = 19;
 
@@ -174,7 +174,7 @@ void read_and_write_register(FILE *input, FILE *output)
         bytes_written += 4 + 1 + reg->city_namesize;
     }
 
-    if (reg && reg->brand_namesize && reg->brand)
+    if (reg->brand_namesize > 0)
     {
         fwrite(&reg->brand_namesize, sizeof(int),  1, output);
         fwrite("1",                  sizeof(char), 1, output);
@@ -182,7 +182,7 @@ void read_and_write_register(FILE *input, FILE *output)
         bytes_written += 4 + 1 + reg->brand_namesize;
     }
 
-    if (reg && reg->model_namesize && reg->model)
+    if (reg->model_namesize > 0)
     {
         fwrite(&reg->model_namesize, sizeof(int),  1, output);
         fwrite("2",                  sizeof(char), 1, output);
@@ -199,8 +199,9 @@ void read_and_write_register(FILE *input, FILE *output)
     free_register(reg);
 }
 
-void read_and_write_all(FILE *input, FILE *output)
+void read_and_write_all_type1(FILE *input, FILE *output)
 {   
+    char *input_header = read_until(input, '\n');
     int register_count = 0;
 
     char c = fgetc(input);
@@ -216,13 +217,120 @@ void read_and_write_all(FILE *input, FILE *output)
     fseek(output, 174, SEEK_SET);
     fwrite(&register_count, sizeof(int), 1, output);
 
+    free(input_header);
     fclose(input);
 }
 
-void close_file(FILE *fp)
+void close_type1_file(FILE *fp)
 {
     fseek(fp, 0, SEEK_SET);
     fwrite("1", sizeof(char), 1, fp);
 
     fclose(fp);
+}
+
+static reg_t1 *read_register_from_bin(FILE *fp)
+{
+    reg_t1 *reg = malloc(sizeof(reg_t1));
+
+    // Campos de tamanho fixo
+    fread(&reg->removed, sizeof(char), 1, fp);
+    fread(&reg->next,    sizeof(int),  1, fp);
+    fread(&reg->id,      sizeof(int),  1, fp);
+    fread(&reg->year,    sizeof(int),  1, fp);
+    fread(&reg->qtt,     sizeof(int),  1, fp);
+
+    reg->state = malloc(sizeof(char) * 2);
+    fread(reg->state, sizeof(char), 2, fp);
+
+    // Campos de tamanho variável
+    reg->city_namesize  = 0;
+    reg->brand_namesize = 0;
+    reg->model_namesize = 0;
+    reg->city  = NULL;
+    reg->brand = NULL;
+    reg->model = NULL;
+
+    char c;
+
+    // Cidade
+    fseek(fp, 4, SEEK_CUR);
+    fread(&c, sizeof(char), 1, fp);
+    fseek(fp, -5, SEEK_CUR);
+    
+    if (c == '0')
+    {
+        fread(&reg->city_namesize, sizeof(int),  1, fp);
+        fseek(fp, 1, SEEK_CUR);
+        reg->city = malloc(sizeof(char) * reg->city_namesize);
+        fread(reg->city, sizeof(char), reg->city_namesize, fp);
+    }
+
+    // Marca
+    fseek(fp, 4, SEEK_CUR);
+    fread(&c, sizeof(char), 1, fp);
+    fseek(fp, -5, SEEK_CUR);
+
+    if (c == '1')
+    {
+        fread(&reg->brand_namesize, sizeof(int),  1, fp);
+        fseek(fp, 1, SEEK_CUR);
+        reg->brand = malloc(sizeof(char) * reg->brand_namesize);
+        fread(reg->brand, sizeof(char), reg->brand_namesize, fp);
+    }
+
+    // Modelo
+    fseek(fp, 4, SEEK_CUR);
+    fread(&c, sizeof(char), 1, fp);
+    fseek(fp, -5, SEEK_CUR);
+
+    if (c == '2')
+    {
+        fread(&reg->model_namesize, sizeof(int),  1, fp);
+        fseek(fp, 1, SEEK_CUR);
+        reg->model = malloc(sizeof(char) * reg->model_namesize);
+        fread(reg->model, sizeof(char), reg->model_namesize, fp);
+    }    
+
+    return reg;
+}
+
+void print_type1_register(FILE *fp, int rrn)
+{
+    long int offset = HEADER_SIZE + (rrn * 97);
+
+    fseek(fp, 0, SEEK_END);
+    long int file_size = ftell(fp);
+
+    if (offset >= file_size)
+    {
+        printf("Registro inexistente.\n");
+        return;
+    }
+
+    fseek(fp, offset, SEEK_SET);
+    reg_t1 *reg = read_register_from_bin(fp);
+
+    if (reg->removed == '1')
+    {
+        printf("Registro inexistente.\n");
+        return;
+    }
+
+    if (reg->brand) printf("MARCA DO VEICULO: %s\n", reg->brand);
+    else printf("MARCA DO VEICULO: NAO PREENCHIDO\n");
+    
+    if (reg->model) printf("MODELO DO VEICULO: %s\n", reg->model);
+    else printf("MODELO DO VEICULO: NAO PREENCHIDO\n");
+
+    if (reg->year != -1) printf("ANO DE FABRICACAO: %d\n", reg->year);
+    else printf("ANO DE FABRICACAO: NAO PREENCHIDO\n");
+
+    if (reg->city) printf("NOME DA CIDADE: %s\n", reg->city);
+    else printf("NOME DA CIDADE: NAO PREENCHIDO\n");
+
+    if (reg->qtt != -1) printf("QUANTIDADE DE VEICULOS: %d\n\n", reg->qtt);
+    else printf("QUANTIDADE DE VEICULOS: NAO PREENCHIDO\n\n");
+
+    free_register(reg);
 }
