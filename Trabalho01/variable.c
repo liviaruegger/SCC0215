@@ -36,6 +36,19 @@ typedef struct register_type2
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
+typedef struct search_field_register_type2
+{
+  int id;
+  int year;
+  int qtt;
+  char *state;
+  char *city;
+  char *brand;
+  char *model;
+} s_reg_t2;
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
 FILE *new_type2_file(char *file_name)
 {
   FILE *fp = fopen(file_name, "wb");
@@ -241,6 +254,32 @@ void read_and_write_register_t2(FILE *input, FILE *output)
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
+void free_reg_t2(reg_t2 *reg)
+{
+  if(reg->brand_namesize != -1)
+  {
+    free(reg->codC6);
+    free(reg->brand);
+  }
+
+  if(reg->model_namesize != -1)
+  {
+    free(reg->codC7);
+    free(reg->model);
+  }
+
+  if(reg->city_namesize != -1)
+  {
+    free(reg->codC5);
+    free(reg->city);
+  }
+
+  free(reg->state);
+  free(reg);
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
 void print_t2_register(reg_t2 *reg)
 {
   printf("MARCA DO VEICULO: ");
@@ -288,6 +327,66 @@ void print_t2_register(reg_t2 *reg)
   printf("\n");
 
   free(reg->state); // Aloccated, but not printed.
+  free(reg);
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+reg_t2 *t2_file_to_struct(FILE *fp)
+{
+  reg_t2 *reg = malloc(sizeof(reg_t2));
+
+  // Read data from binary file and store it in struct.
+  reg->removed = '0';
+  fread(&reg->register_size, sizeof(int), 1, fp);
+  fread(&reg->next, sizeof(long int), 1, fp);
+  fread(&reg->id, sizeof(int), 1, fp);
+  fread(&reg->year, sizeof(int), 1, fp);
+  fread(&reg->qtt, sizeof(int), 1, fp);
+  reg->state = calloc(3, sizeof(char));
+  fread(reg->state, sizeof(char), 2, fp);
+
+  reg->city_namesize = -1;
+  reg->brand_namesize = -1;
+  reg->model_namesize = -1;
+
+  // sizeof(next + id + year + qtt + state)
+  int current_size = 22;
+  while(reg->register_size - current_size != 0)
+  {
+    int size;
+    char *cod = calloc(2, sizeof(char));
+
+    fread(&size, sizeof(int), 1, fp);
+    fread(cod, sizeof(char), 1, fp);
+
+    // codC5 - city
+    if(strcmp(cod, "0") == 0)
+    {
+      reg->city_namesize = size;
+      reg->codC5 = cod;
+      reg->city = calloc((reg->city_namesize + 1), sizeof(char));
+      fread(reg->city, sizeof(char), reg->city_namesize, fp);
+    }
+    // cod6 - brand
+    else if(strcmp(cod, "1") == 0){
+      reg->brand_namesize = size;
+      reg->codC6 = cod;
+      reg->brand = calloc((reg->brand_namesize + 1), sizeof(char));
+      fread(reg->brand, sizeof(char), reg->brand_namesize, fp);
+    }
+    // cod7 - model
+    else{
+      reg->model_namesize = size;
+      reg->codC7 = cod;
+      reg->model = calloc((reg->model_namesize + 1), sizeof(char));
+      fread(reg->model, sizeof(char), reg->model_namesize, fp);
+    }
+
+    // += sizeof(int + byte + variable)
+    current_size += 4 + 1 + size;
+  }
+  return reg;
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -295,7 +394,7 @@ void print_t2_register(reg_t2 *reg)
 void print_t2_register_from_file(FILE *fp)
 {
   char c;
-  reg_t2 *reg = malloc(sizeof(reg_t2));
+  reg_t2 *reg;
   fseek(fp, 190, SEEK_SET); // Move file pointer to the first register.
 
   do
@@ -304,58 +403,166 @@ void print_t2_register_from_file(FILE *fp)
     c = fgetc(fp);
     if(c == '0')
     {
-      // Read data from binary file and store it in struct.
-      reg->removed = '0';
-      fread(&reg->register_size, sizeof(int), 1, fp);
-      fread(&reg->next, sizeof(long int), 1, fp);
-      fread(&reg->id, sizeof(int), 1, fp);
-      fread(&reg->year, sizeof(int), 1, fp);
-      fread(&reg->qtt, sizeof(int), 1, fp);
-      reg->state = calloc(3, sizeof(char));
-      fread(reg->state, sizeof(char), 2, fp);
-
-      reg->city_namesize = -1;
-      reg->brand_namesize = -1;
-      reg->model_namesize = -1;
-
-      // sizeof(next + id + year + qtt + state)
-      int current_size = 22;
-      while(reg->register_size - current_size != 0)
-      {
-        int size;
-        char *cod = calloc(2, sizeof(char));
-
-        fread(&size, sizeof(int), 1, fp);
-        fread(cod, sizeof(char), 1, fp);
-
-        // codC5 - city
-        if(strcmp(cod, "0") == 0)
-        {
-          reg->city_namesize = size;
-          reg->codC5 = cod;
-          reg->city = calloc((reg->city_namesize + 1), sizeof(char));
-          fread(reg->city, sizeof(char), reg->city_namesize, fp);
-        }
-        // cod6 - brand
-        else if(strcmp(cod, "1") == 0){
-          reg->brand_namesize = size;
-          reg->codC6 = cod;
-          reg->brand = calloc((reg->brand_namesize + 1), sizeof(char));
-          fread(reg->brand, sizeof(char), reg->brand_namesize, fp);
-        }
-        // cod7 - model
-        else{
-          reg->model_namesize = size;
-          reg->codC7 = cod;
-          reg->model = calloc((reg->model_namesize + 1), sizeof(char));
-          fread(reg->model, sizeof(char), reg->model_namesize, fp);
-        }
-
-        // += sizeof(int + byte + variable)
-        current_size += 4 + 1 + size;
-      }
+      reg = t2_file_to_struct(fp);
       print_t2_register(reg);
     }
   } while(c != EOF);
-  free(reg);
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+s_reg_t2 *get_reg_t2_search_parameters()
+{
+  s_reg_t2 *reg_t2_search = malloc(sizeof(s_reg_t2));
+  reg_t2_search->id = -1;
+  reg_t2_search->year = -1;
+  reg_t2_search->qtt = -1;
+  reg_t2_search->state = NULL;
+  reg_t2_search->city = NULL;
+  reg_t2_search->brand = NULL;
+  reg_t2_search->model = NULL;
+
+  int n;
+
+  scanf("%d", &n);
+  getchar(); // Consome o '\n'
+
+  for (int i = 0; i < n; i++)
+  {
+      char *field_name = read_word(stdin);
+      char *field_content = NULL;
+
+      char c = getchar();
+      if (c == '"')
+      {
+          field_content = read_until(stdin, '"');
+          getchar(); // Consome o '\n'
+
+          if(strcmp(field_name, "cidade") == 0)
+            reg_t2_search->city = field_content;
+
+          else if(strcmp(field_name, "marca") == 0)
+            reg_t2_search->brand = field_content;
+          else
+            reg_t2_search->model = field_content;
+      }
+      else
+      {
+          ungetc(c, stdin);
+          int value;
+          scanf(" %d", &value);
+
+          if(strcmp(field_name, "id") == 0)
+            reg_t2_search->id = value;
+
+          else if(strcmp(field_name, "ano") == 0)
+            reg_t2_search->year = value;
+
+          else
+            reg_t2_search->qtt = value;
+      }
+
+      free(field_name);
+  }
+
+  return reg_t2_search;
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+void free_s_reg_t2(s_reg_t2 *s_reg_t2)
+{
+  if(s_reg_t2->state != NULL)
+    free(s_reg_t2->state);
+  if(s_reg_t2->city != NULL)
+    free(s_reg_t2->city);
+  if(s_reg_t2->brand != NULL)
+    free(s_reg_t2->brand);
+  if(s_reg_t2->model != NULL)
+    free(s_reg_t2->model);
+
+  free(s_reg_t2);
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+int verify_reg_t2(reg_t2 *reg, s_reg_t2 *s_reg_t2)
+{
+  if(s_reg_t2->id != -1)
+  {
+    if(s_reg_t2->id == reg->id)
+      return 2;
+    else
+      return 0;
+  }
+
+  if(s_reg_t2->year != -1)
+    if(s_reg_t2->year != reg->year)
+      return 0;
+
+  if(s_reg_t2->qtt != -1)
+    if(s_reg_t2->qtt != reg->qtt)
+      return 0;
+
+  if(s_reg_t2->state != NULL)
+    if(strcmp(s_reg_t2->state, reg->state) != 0)
+      return 0;
+
+  if(s_reg_t2->city != NULL){
+    if(reg->city_namesize == -1)
+      return 0;
+    else if(strcmp(s_reg_t2->city, reg->city) != 0)
+      return 0;
+  }
+
+  if(s_reg_t2->brand != NULL){
+    if(reg->brand_namesize == -1)
+      return 0;
+    else if(strcmp(s_reg_t2->brand, reg->brand) != 0)
+      return 0;
+  }
+
+  if(s_reg_t2->model != NULL){
+    if(reg->model_namesize == -1)
+      return 0;
+    else if(strcmp(s_reg_t2->model, reg->model) != 0)
+      return 0;
+  }
+
+  return 1;
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+void search_t2_parameter(FILE *fp)
+{
+  reg_t2 *reg;
+  s_reg_t2 *reg_s;
+  char c;
+  int verifier;
+  reg_s = get_reg_t2_search_parameters();
+  fseek(fp, 190, SEEK_SET); // Move file pointer to the first register.
+
+  do
+  {
+    // Status verification
+    c = fgetc(fp);
+    if(c == '0')
+    {
+      reg = t2_file_to_struct(fp);
+      verifier = verify_reg_t2(reg, reg_s);
+      if(verifier == 0)
+        free_reg_t2(reg);
+
+      else if(verifier == 1)
+        print_t2_register(reg);
+
+      else if(verifier == 2){
+        print_t2_register(reg);
+        break;
+      }
+    }
+  } while(c != EOF);
+
+  free_s_reg_t2(reg_s);
 }
