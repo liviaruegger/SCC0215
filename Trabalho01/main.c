@@ -12,49 +12,61 @@
 
 int main()
 {
-    int func, n, rrn;
-    scanf("%d", &func);
-    getchar(); // Consome o '\n'
+  int func, n, rrn;
+  scanf("%d", &func);
+  getchar(); // Consome o '\n'
 
-    char *file_type = read_word(stdin);
-    char *input_file = read_word(stdin);
-    char *output_file = NULL;
+  char *file_type = read_word(stdin);
+  char *input_file = read_word(stdin);
+  char *output_file = NULL;
 
-    FILE *input_fp = fopen(input_file, "rb");
-    char *input_header = read_until(input_fp, '\n');
+  FILE *input_fp = NULL;
+  if (func == 1) input_fp = fopen(input_file, "r");
+  else input_fp = fopen(input_file, "rb");
 
-    switch (func)
-    {
-        case 1:
-            output_file = read_word(stdin);
+  if (!input_fp)
+  {
+      printf("Falha no processamento do arquivo.");
+      free(file_type);
+      free(input_file);
+      return 0;
+  }
 
-            if (file_type[4] == '1')
-            {
-                FILE *output_fp = new_file(output_file);
-                read_and_write_all(input_fp, output_fp);
-                close_file(output_fp);
-            }
-            else if (file_type[4] == '2')
-            {
-                FILE *saida = new_type2_file(output_file);
-                read_and_write_register_t2(input_fp, saida);
-            }
+  switch (func)
+  {
+      case 1:
+          output_file = read_word(stdin);
 
-            binarioNaTela(output_file);
-            free(output_file);
-            break;
+          if (file_type[4] == '1')
+          {
+              /*
+              FILE *output_fp = new_file(output_file);
+              read_and_write_all(input_fp, output_fp);
+              close_file(output_fp);*/
+          }
+          else if (file_type[4] == '2')
+          {
+              FILE *saida = new_type2_file(output_file);
+              read_and_write_register_t2(input_fp, saida);
+              fclose(saida);
+          }
 
-        case 2:
-            if (file_type[4] == '1')
-            {
+          binarioNaTela(output_file);
+          free(output_file);
+          break;
 
-            }
-            else if (file_type[4] == '2')
-              print_t2_register_from_file(input_fp);
+      case 2:
+          if (file_type[4] == '1')
+          {
 
-            break;
+          }
+          else if (file_type[4] == '2')
+            print_t2_register_from_file(input_fp);
+          break;
 
-        case 3:
+      case 3:
+          if (file_type[4] == '1')
+          {
             scanf("%d", &n);
             getchar(); // Consome o '\n'
 
@@ -71,6 +83,8 @@ int main()
 
                     // TODO: chamar funcao
 
+                    printf("%s %s\n", field_name, field_content);
+
                     free(field_content);
                 }
                 else
@@ -79,23 +93,28 @@ int main()
                     int value;
                     scanf("%d", &value);
                     // TODO: chamar funcao
+
+                    printf("%s %d\n", field_name, value);
+
                 }
 
                 free(field_name);
             }
+          }
+          else if (file_type[4] == '2')
+            search_t2_parameter(input_fp);
+          break;
 
-            break;
+      case 4:
+          scanf("%d", &rrn);
+          /* code */
 
-        case 4:
-            scanf("%d", &rrn);
-            /* code */
+          break;
+  }
 
-            break;
-    }
+  fclose(input_fp);
+  free(file_type);
+  free(input_file);
 
-    free(file_type);
-    free(input_file);
-    free(input_header);
-
-    return 0;
+  return 0;
 }
