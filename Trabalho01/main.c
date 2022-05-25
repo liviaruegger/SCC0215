@@ -56,36 +56,45 @@ int main()
             break;
         
         case 3:
-            scanf("%d", &n);
-            getchar(); // Consome o '\n'
-
-            for (int i = 0; i < n; i++)
+            if (file_type[4] == '1')
             {
-                char *field_name = read_word(stdin);
-                char *field_content = NULL;
+                scanf("%d", &n);
+                getchar(); // Consome o '\n'
 
-                char c = getchar();
-                if (c == '"')
+                for (int i = 0; i < n; i++)
                 {
-                    field_content = read_until(stdin, '"');
-                    getchar(); // Consome o '\n'
+                    char *field_name = read_word(stdin);
+                    char *field_content = NULL;
 
-                    // TODO: chamar funcao de acordo com tipo de arquivo
+                    char c = getchar();
+                    if (c == '"')
+                    {
+                        field_content = read_until(stdin, '"');
+                        getchar(); // Consome o '\n'
 
-                    free(field_content);
+                        // TODO: chamar funcao
+
+                        printf("%s %s\n", field_name, field_content);
+
+                        free(field_content);
+                    }
+                    else
+                    {
+                        ungetc(c, stdin);
+                        int value;
+                        scanf("%d", &value);
+                        // TODO: chamar funcao
+
+                        printf("%s %d\n", field_name, value);
+                    }
+
+                    free(field_name);
                 }
-                else
-                {
-                    ungetc(c, stdin);
-                    int value;
-                    scanf("%d", &value);
-
-                    // TODO: chamar funcao de acordo com tipo de arquivo
-                }
-
-                free(field_name);
             }
-            
+            else if (file_type[4] == '2')
+            {
+                search_t2_parameter(input_fp);
+            }
             break;
         
         case 4:
