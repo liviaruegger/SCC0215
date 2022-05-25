@@ -218,7 +218,6 @@ void read_and_write_all_type1(FILE *input, FILE *output)
     fwrite(&register_count, sizeof(int), 1, output);
 
     free(input_header);
-    fclose(input);
 }
 
 void close_type1_file(FILE *fp)
