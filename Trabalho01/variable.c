@@ -17,8 +17,6 @@
 #include <string.h>
 #include "utils.h"
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
 typedef struct register_type2
 {
     char removed;
@@ -43,8 +41,6 @@ typedef struct register_type2
     char *model;
 } reg_t2;
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
 typedef struct search_field_register_type2
 {
     int id;
@@ -56,8 +52,12 @@ typedef struct search_field_register_type2
     char *model;
 } s_reg_t2;
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief 
+ * 
+ * @param file_name 
+ * @return FILE* 
+ */
 FILE *new_type2_file(char *file_name)
 {
     FILE *fp = fopen(file_name, "wb");
@@ -100,8 +100,12 @@ FILE *new_type2_file(char *file_name)
     return fp;
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief 
+ * 
+ * @param fp 
+ * @return reg_t2* 
+ */
 reg_t2 *read_t2_register_from_csv(FILE *fp)
 {
     reg_t2 *reg = malloc(sizeof(reg_t2));
@@ -194,8 +198,12 @@ reg_t2 *read_t2_register_from_csv(FILE *fp)
     return reg;
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief 
+ * 
+ * @param input 
+ * @param output 
+ */
 void read_and_write_all_type2(FILE *input, FILE *output)
 {
     // Move file pointer to the first register.
@@ -263,8 +271,11 @@ void read_and_write_all_type2(FILE *input, FILE *output)
     fwrite("1", sizeof(char), 1, output);
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief 
+ * 
+ * @param reg 
+ */
 void free_reg_t2(reg_t2 *reg)
 {
     if (reg->brand_namesize != -1)
@@ -289,8 +300,11 @@ void free_reg_t2(reg_t2 *reg)
     free(reg);
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief 
+ * 
+ * @param reg 
+ */
 void print_t2_register(reg_t2 *reg)
 {
     printf("MARCA DO VEICULO: ");
@@ -341,8 +355,12 @@ void print_t2_register(reg_t2 *reg)
     free(reg);
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief 
+ * 
+ * @param fp 
+ * @return reg_t2* 
+ */
 reg_t2 *t2_file_to_struct(FILE *fp)
 {
     reg_t2 *reg = malloc(sizeof(reg_t2));
@@ -402,8 +420,11 @@ reg_t2 *t2_file_to_struct(FILE *fp)
     return reg;
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief 
+ * 
+ * @param fp 
+ */
 void print_all_from_bin_type2(FILE *fp)
 {
     char c;
@@ -422,8 +443,11 @@ void print_all_from_bin_type2(FILE *fp)
     } while (c != EOF);
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief
+ * 
+ * @return s_reg_t2* 
+ */
 s_reg_t2 *get_reg_t2_search_parameters()
 {
     s_reg_t2 *reg_t2_search = malloc(sizeof(s_reg_t2));
@@ -481,8 +505,11 @@ s_reg_t2 *get_reg_t2_search_parameters()
     return reg_t2_search;
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief 
+ * 
+ * @param s_reg_t2 
+ */
 void free_s_reg_t2(s_reg_t2 *s_reg_t2)
 {
     if (s_reg_t2->state != NULL)
@@ -497,8 +524,13 @@ void free_s_reg_t2(s_reg_t2 *s_reg_t2)
     free(s_reg_t2);
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief 
+ * 
+ * @param reg 
+ * @param s_reg_t2 
+ * @return int 
+ */
 int verify_reg_t2(reg_t2 *reg, s_reg_t2 *s_reg_t2)
 {
     if (s_reg_t2->id != -1)
@@ -548,8 +580,11 @@ int verify_reg_t2(reg_t2 *reg, s_reg_t2 *s_reg_t2)
     return 1;
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/**
+ * @brief 
+ * 
+ * @param fp 
+ */
 void search_by_parameters_type2(FILE *fp)
 {
     reg_t2 *reg;
