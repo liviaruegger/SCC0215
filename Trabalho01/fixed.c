@@ -316,8 +316,159 @@ static void print_register_info(reg_t1 *reg)
     else printf("QUANTIDADE DE VEICULOS: NAO PREENCHIDO\n\n");
 }
 
-void print_type1_register(FILE *fp, int rrn)
+void print_all_from_bin_type1(FILE *fp)
 {
+    char status;
+    fread(&status, sizeof(char), 1, fp);
+
+    if (status == '0')
+    {
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+
+    fseek(fp, 0, SEEK_END);
+    long int file_size = ftell(fp);
+
+    for (long int offset = HEADER_SIZE; offset < file_size; offset += 97)
+    {
+        fseek(fp, offset, SEEK_SET);
+        reg_t1 *reg = read_register_from_bin(fp);
+        print_register_info(reg);
+        free_register(reg);
+    }
+}
+
+// ------------------------------ funcionalidade 3 ---------------------------------------
+
+static reg_t1 *get_search_parameters()
+{
+    reg_t1 *reg = malloc(sizeof(reg_t1));
+
+    reg->id    = -1;
+    reg->year  = -1;
+    reg->qtt   = -1;
+    reg->state = NULL;
+    reg->city  = NULL;
+    reg->brand = NULL;
+    reg->model = NULL;
+
+    int n;
+    scanf("%d", &n);
+    getchar(); // Consome o '\n'
+
+    for (int i = 0; i < n; i++)
+    {
+        char *field_name = read_word(stdin);
+        char *field_content = NULL;
+
+        char c = getchar();
+        if (c == '"')
+        {
+            field_content = read_until(stdin, '"');
+            getchar(); // Consome o '\n'
+
+            if      (strcmp(field_name, "sigla")  == 0) reg->state = field_content;
+            else if (strcmp(field_name, "cidade") == 0) reg->city  = field_content;
+            else if (strcmp(field_name, "marca")  == 0) reg->brand = field_content;
+            else if (strcmp(field_name, "modelo") == 0) reg->model = field_content;
+
+            free(field_content);
+        }
+        else
+        {
+            ungetc(c, stdin);
+            int value;
+            scanf("%d", &value);
+
+            if      (strcmp(field_name, "id")  == 0) reg->id   = value;
+            else if (strcmp(field_name, "ano") == 0) reg->year = value;
+            else if (strcmp(field_name, "qtt") == 0) reg->qtt  = value;
+        }
+
+        free(field_name);
+    }
+    
+    return reg;
+}
+
+static void compare_and_print_if_matched(reg_t1 *reg, reg_t1 *search_parameters)
+{
+    if (search_parameters->id != -1 &&
+        search_parameters->id != reg->id)
+        return;
+
+    if (search_parameters->year != -1 &&
+        search_parameters->year != reg->year)
+        return;
+
+    if (search_parameters->qtt != -1 &&
+        search_parameters->qtt != reg->qtt)
+        return;
+    
+    if (search_parameters->state != NULL &&
+        strcmp(search_parameters->state, reg->state) != 0)
+        return;
+    
+    if (search_parameters->city != NULL &&
+        strcmp(search_parameters->city, reg->city) != 0)
+        return;
+
+    if (search_parameters->brand != NULL &&
+        strcmp(search_parameters->brand, reg->brand) != 0)
+        return;
+    
+    if (search_parameters->model != NULL &&
+        strcmp(search_parameters->model, reg->model) != 0)
+        return;
+
+    print_register_info(reg);
+}
+
+void search_by_parameters_type1(FILE *fp)
+{
+    char status;
+    fread(&status, sizeof(char), 1, fp);
+    fseek(fp, 0, SEEK_SET);
+
+    if (status == '0')
+    {
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+
+    reg_t1 *search_parameters = get_search_parameters();
+
+    fseek(fp, 0, SEEK_END);
+    long int file_size = ftell(fp);
+
+    for (long int offset = HEADER_SIZE; offset < file_size; offset += 97)
+    {
+        fseek(fp, offset, SEEK_SET);
+        reg_t1 *reg = read_register_from_bin(fp);
+        compare_and_print_if_matched(reg, search_parameters);
+        free_register(reg);
+    }
+
+    free_register(search_parameters);
+}
+
+
+
+
+// ------------------------------- funcionalidade 4 --------------------------------------
+
+void search_by_rrn_type1(FILE *fp, int rrn)
+{
+    char status;
+    fread(&status, sizeof(char), 1, fp);
+
+    if (status == '0')
+    {
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+    
     long int offset = HEADER_SIZE + (rrn * 97);
 
     fseek(fp, 0, SEEK_END);
@@ -334,18 +485,4 @@ void print_type1_register(FILE *fp, int rrn)
     print_register_info(reg);
 
     free_register(reg);
-}
-
-void print_all_from_bin_type1(FILE *fp)
-{
-    fseek(fp, 0, SEEK_END);
-    long int file_size = ftell(fp);
-
-    for (long int offset = HEADER_SIZE; offset < file_size; offset += 97)
-    {
-        fseek(fp, offset, SEEK_SET);
-        reg_t1 *reg = read_register_from_bin(fp);
-        print_register_info(reg);
-        free_register(reg);
-    }
 }

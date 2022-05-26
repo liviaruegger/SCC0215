@@ -12,7 +12,7 @@
 
 int main()
 {
-    int func, n, rrn;
+    int func, rrn;
     scanf("%d", &func);
     getchar(); // Consome o '\n'
 
@@ -26,7 +26,7 @@ int main()
   
     if (!input_fp)
     {
-        printf("Falha no processamento do arquivo.");
+        printf("Falha no processamento do arquivo.\n");
         free(file_type);
         free(input_file);
         return 0;
@@ -68,38 +68,7 @@ int main()
         case 3:
             if (file_type[4] == '1')
             {
-                scanf("%d", &n);
-                getchar(); // Consome o '\n'
-
-                for (int i = 0; i < n; i++)
-                {
-                    char *field_name = read_word(stdin);
-                    char *field_content = NULL;
-
-                    char c = getchar();
-                    if (c == '"')
-                    {
-                        field_content = read_until(stdin, '"');
-                        getchar(); // Consome o '\n'
-
-                        // TODO: chamar funcao
-
-                        printf("%s %s\n", field_name, field_content);
-
-                        free(field_content);
-                    }
-                    else
-                    {
-                        ungetc(c, stdin);
-                        int value;
-                        scanf("%d", &value);
-                        // TODO: chamar funcao
-
-                        printf("%s %d\n", field_name, value);
-                    }
-
-                    free(field_name);
-                }
+                search_by_parameters_type1(input_fp);
             }
             else if (file_type[4] == '2')
             {
@@ -109,7 +78,7 @@ int main()
 
         case 4:
             scanf("%d", &rrn);
-            print_type1_register(input_fp, rrn);
+            search_by_rrn_type1(input_fp, rrn);
             break;
     }
 
