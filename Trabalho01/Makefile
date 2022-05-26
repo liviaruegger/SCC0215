@@ -1,10 +1,10 @@
 objects = main.c utils.c fixed.c variable.c
 
 all: $(objects)
-	gcc $(objects) -o main -g
+	gcc $(objects) -o programaTrab -g
 
 run:
-	./main
+	./programaTrab
 
 test: all
 	./test.sh
