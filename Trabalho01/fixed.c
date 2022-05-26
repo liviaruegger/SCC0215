@@ -217,15 +217,10 @@ void read_and_write_all_type1(FILE *input, FILE *output)
     fseek(output, 174, SEEK_SET);
     fwrite(&register_count, sizeof(int), 1, output);
 
+    fseek(output, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, output);
+
     free(input_header);
-}
-
-void close_type1_file(FILE *fp)
-{
-    fseek(fp, 0, SEEK_SET);
-    fwrite("1", sizeof(char), 1, fp);
-
-    fclose(fp);
 }
 
 static reg_t1 *read_register_from_bin(FILE *fp)

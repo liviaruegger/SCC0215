@@ -42,15 +42,14 @@ int main()
             {
                 output_fp = new_type1_file(output_file);
                 read_and_write_all_type1(input_fp, output_fp);
-                close_type1_file(output_fp);
             }
             else if (file_type[4] == '2')
             {
                 output_fp = new_type2_file(output_file);
                 read_and_write_register_t2(input_fp, output_fp);
-                fclose(output_fp);
             }
 
+            fclose(output_fp);
             binarioNaTela(output_file);
             free(output_file);
             break;
