@@ -1,14 +1,19 @@
+/**
+ * @file   main.c
+ * @author Ana Lívia Ruegger Saldanha (N.USP 8586691)
+ * @author André Kenji Hidaka Matsumoto (N. USP 12542689)
+ * @brief  SCC0215 - Organização de Arquivos
+ *         Trabalho 01
+ *         
+ * @date   2022-05-26
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
 #include "fixed.h"
 #include "variable.h"
-
-// --- ENTRADAS:
-// FUNC 1 -> 1 tipoArquivo arquivoEntrada.csv arquivoSaida.bin
-// FUNC 2 -> 2 tipoArquivo arquivoEntrada.bin
-// FUNC 3 -> 3 tipoArquivo arquivoEntrada.bin n
-// FUNC 4 -> 4 tipoArquivo arquivoEntrada.bin RRN
 
 int main()
 {
@@ -46,7 +51,7 @@ int main()
             else if (file_type[4] == '2')
             {
                 output_fp = new_type2_file(output_file);
-                read_and_write_register_t2(input_fp, output_fp);
+                read_and_write_all_type2(input_fp, output_fp);
             }
 
             fclose(output_fp);
@@ -61,7 +66,7 @@ int main()
             }
             else if (file_type[4] == '2')
             {
-                print_t2_register_from_file(input_fp);
+                print_all_from_bin_type2(input_fp);
             }
             break;
         
@@ -72,7 +77,7 @@ int main()
             }
             else if (file_type[4] == '2')
             {
-                search_t2_parameter(input_fp);
+                search_by_parameters_type2(input_fp);
             }
             break;
 
