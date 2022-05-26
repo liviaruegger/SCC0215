@@ -1,3 +1,14 @@
+/**
+ * @file   main.c
+ * @author Ana Lívia Ruegger Saldanha (N.USP 8586691)
+ * @author André ____________________________________
+ * @brief  SCC0215 - Organização de Arquivos
+ *         Trabalho 01
+ *         
+ * @date   2022-05-26
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
