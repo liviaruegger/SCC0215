@@ -58,7 +58,7 @@ int main()
         case 2:
             if (file_type[4] == '1')
             {
-
+                print_all_from_bin_type1(input_fp);
             }
             else if (file_type[4] == '2')
             {

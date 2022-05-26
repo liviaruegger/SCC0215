@@ -261,8 +261,9 @@ static reg_t1 *read_register_from_bin(FILE *fp)
     {
         fread(&reg->city_namesize, sizeof(int),  1, fp);
         fseek(fp, 1, SEEK_CUR);
-        reg->city = malloc(sizeof(char) * reg->city_namesize);
+        reg->city = malloc(sizeof(char) * (reg->city_namesize + 1));
         fread(reg->city, sizeof(char), reg->city_namesize, fp);
+        reg->city[reg->city_namesize] = '\0';
     }
 
     // Marca
@@ -274,8 +275,9 @@ static reg_t1 *read_register_from_bin(FILE *fp)
     {
         fread(&reg->brand_namesize, sizeof(int),  1, fp);
         fseek(fp, 1, SEEK_CUR);
-        reg->brand = malloc(sizeof(char) * reg->brand_namesize);
+        reg->brand = malloc(sizeof(char) * (reg->brand_namesize + 1));
         fread(reg->brand, sizeof(char), reg->brand_namesize, fp);
+        reg->brand[reg->brand_namesize] = '\0';
     }
 
     // Modelo
@@ -287,29 +289,16 @@ static reg_t1 *read_register_from_bin(FILE *fp)
     {
         fread(&reg->model_namesize, sizeof(int),  1, fp);
         fseek(fp, 1, SEEK_CUR);
-        reg->model = malloc(sizeof(char) * reg->model_namesize);
+        reg->model = malloc(sizeof(char) * (reg->model_namesize + 1));
         fread(reg->model, sizeof(char), reg->model_namesize, fp);
+        reg->model[reg->model_namesize] = '\0';
     }    
 
     return reg;
 }
 
-void print_type1_register(FILE *fp, int rrn)
+static void print_register_info(reg_t1 *reg)
 {
-    long int offset = HEADER_SIZE + (rrn * 97);
-
-    fseek(fp, 0, SEEK_END);
-    long int file_size = ftell(fp);
-
-    if (offset >= file_size)
-    {
-        printf("Registro inexistente.\n");
-        return;
-    }
-
-    fseek(fp, offset, SEEK_SET);
-    reg_t1 *reg = read_register_from_bin(fp);
-
     if (reg->removed == '1')
     {
         printf("Registro inexistente.\n");
@@ -330,6 +319,38 @@ void print_type1_register(FILE *fp, int rrn)
 
     if (reg->qtt != -1) printf("QUANTIDADE DE VEICULOS: %d\n\n", reg->qtt);
     else printf("QUANTIDADE DE VEICULOS: NAO PREENCHIDO\n\n");
+}
+
+void print_type1_register(FILE *fp, int rrn)
+{
+    long int offset = HEADER_SIZE + (rrn * 97);
+
+    fseek(fp, 0, SEEK_END);
+    long int file_size = ftell(fp);
+
+    if (offset >= file_size)
+    {
+        printf("Registro inexistente.\n");
+        return;
+    }
+
+    fseek(fp, offset, SEEK_SET);
+    reg_t1 *reg = read_register_from_bin(fp);
+    print_register_info(reg);
 
     free_register(reg);
+}
+
+void print_all_from_bin_type1(FILE *fp)
+{
+    fseek(fp, 0, SEEK_END);
+    long int file_size = ftell(fp);
+
+    for (long int offset = HEADER_SIZE; offset < file_size; offset += 97)
+    {
+        fseek(fp, offset, SEEK_SET);
+        reg_t1 *reg = read_register_from_bin(fp);
+        print_register_info(reg);
+        free_register(reg);
+    }
 }
