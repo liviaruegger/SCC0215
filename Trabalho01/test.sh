@@ -9,6 +9,6 @@ do
     echo "Test running: $f"
     OUTFILE="$(echo $f | sed -e 's/in/out/')"
     TESTFILE="$(echo $f | sed -e 's/in/my/')"
-    $BASEPATH/main < $f > $TESTFILE
+    $BASEPATH/programaTrab < $f > $TESTFILE
     diff -u $OUTFILE $TESTFILE
 done
