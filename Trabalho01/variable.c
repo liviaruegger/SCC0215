@@ -95,8 +95,10 @@ FILE *new_type2_file(char *file_name)
  */
 reg_t2 *read_t2_register_from_csv(FILE *fp)
 {
+    // Alocação do registro
     reg_t2 *reg = malloc(sizeof(reg_t2));
 
+    // Preenchimento do registro...
     reg->removed = '0';
     reg->register_size = 0;
 
@@ -126,6 +128,7 @@ reg_t2 *read_t2_register_from_csv(FILE *fp)
         reg->codC5 = "0";
         reg->register_size += 1;
     }
+    // Se não tiver cidade:
     else
     {
         reg->city_namesize = -1;
@@ -143,6 +146,7 @@ reg_t2 *read_t2_register_from_csv(FILE *fp)
     char *sigla = read_until(fp, ',');
     if (sigla[0] != '\0')
         reg->state = sigla;
+    // Se não tiver estado:
     else
     {
         reg->state = "$$";
@@ -160,6 +164,7 @@ reg_t2 *read_t2_register_from_csv(FILE *fp)
         reg->codC6 = "1";
         reg->register_size += 1;
     }
+    // Se não tiver marca:
     else
     {
         reg->brand_namesize = -1;
@@ -176,6 +181,7 @@ reg_t2 *read_t2_register_from_csv(FILE *fp)
         reg->codC7 = "2";
         reg->register_size += 1;
     }
+    // Se não tiver modelo:
     else
     {
         reg->model_namesize = -1;
@@ -214,6 +220,7 @@ void read_and_write_all_type2(FILE *input, FILE *output)
         if (reg->state != "$$")
             free(reg->state);
 
+        // Se tiver cidade:
         if (reg->city_namesize != -1)
         {
             fwrite(&reg->city_namesize, sizeof(int), 1, output);
@@ -222,6 +229,7 @@ void read_and_write_all_type2(FILE *input, FILE *output)
             free(reg->city);
         }
 
+        // Se tiver marca:
         if (reg->brand_namesize != -1)
         {
             fwrite(&reg->brand_namesize, sizeof(int), 1, output);
@@ -230,6 +238,7 @@ void read_and_write_all_type2(FILE *input, FILE *output)
             free(reg->brand);
         }
 
+        // Se tiver modelo:
         if (reg->model_namesize != -1)
         {
             fwrite(&reg->model_namesize, sizeof(int), 1, output);
@@ -298,21 +307,13 @@ void print_t2_register(reg_t2 *reg)
 {
     printf("MARCA DO VEICULO: ");
     if (reg->brand_namesize != -1)
-    {
         printf("%s\n", reg->brand);
-        free(reg->codC6);
-        free(reg->brand);
-    }
     else
         printf("NAO PREENCHIDO\n");
 
     printf("MODELO DO VEICULO: ");
     if (reg->model_namesize != -1)
-    {
         printf("%s\n", reg->model);
-        free(reg->codC7);
-        free(reg->model);
-    }
     else
         printf("NAO PREENCHIDO\n");
 
@@ -324,11 +325,7 @@ void print_t2_register(reg_t2 *reg)
 
     printf("NOME DA CIDADE: ");
     if (reg->city_namesize != -1)
-    {
         printf("%s\n", reg->city);
-        free(reg->codC5);
-        free(reg->city);
-    }
     else
         printf("NAO PREENCHIDO\n");
 
@@ -339,9 +336,6 @@ void print_t2_register(reg_t2 *reg)
         printf("NAO PREENCHIDO\n");
 
     printf("\n");
-
-    free(reg->state); // Alocado, mas não impresso.
-    free(reg);
 }
 
 /**
@@ -353,17 +347,19 @@ void print_t2_register(reg_t2 *reg)
  */
 reg_t2 *t2_file_to_struct(FILE *fp)
 {
+    // Alocação do registro
     reg_t2 *reg = malloc(sizeof(reg_t2));
+
+    reg->state = calloc(3, sizeof(char));
 
     // Read data from binary file and store it in struct.
     reg->removed = '0';
-    fread(&reg->register_size, sizeof(int), 1, fp);
-    fread(&reg->next, sizeof(long int), 1, fp);
-    fread(&reg->id, sizeof(int), 1, fp);
-    fread(&reg->year, sizeof(int), 1, fp);
-    fread(&reg->qtt, sizeof(int), 1, fp);
-    reg->state = calloc(3, sizeof(char));
-    fread(reg->state, sizeof(char), 2, fp);
+    fread(&reg->register_size,  sizeof(int), 1, fp);
+    fread(&reg->next,           sizeof(long int), 1, fp);
+    fread(&reg->id,             sizeof(int), 1, fp);
+    fread(&reg->year,           sizeof(int), 1, fp);
+    fread(&reg->qtt,            sizeof(int), 1, fp);
+    fread(reg->state,           sizeof(char), 2, fp);
 
     reg->city_namesize = -1;
     reg->brand_namesize = -1;
@@ -418,7 +414,7 @@ reg_t2 *t2_file_to_struct(FILE *fp)
 void print_all_from_bin_type2(FILE *fp)
 {
     char c;
-    reg_t2 *reg;
+    reg_t2 *reg = NULL;
     fseek(fp, 190, SEEK_SET); // Move o pointeiro do arquivo para o primeiro registro.
 
     do
@@ -429,8 +425,14 @@ void print_all_from_bin_type2(FILE *fp)
         {
             reg = t2_file_to_struct(fp);
             print_t2_register(reg);
+            free_reg_t2(reg);
         }
     } while (c != EOF);
+
+    if(reg == NULL)
+    {
+        printf("Registro inexistente.\n");
+    }
 }
 
 /**
@@ -441,6 +443,7 @@ void print_all_from_bin_type2(FILE *fp)
  */
 s_reg_t2 *get_reg_t2_search_parameters()
 {
+    // Alocação dos registros e preenchimento inicial
     s_reg_t2 *reg_t2_search = malloc(sizeof(s_reg_t2));
     reg_t2_search->id = -1;
     reg_t2_search->year = -1;
@@ -450,6 +453,7 @@ s_reg_t2 *get_reg_t2_search_parameters()
     reg_t2_search->brand = NULL;
     reg_t2_search->model = NULL;
 
+    // Leitura dos parâmetros na stdin
     int n;
 
     scanf("%d", &n);
@@ -461,6 +465,7 @@ s_reg_t2 *get_reg_t2_search_parameters()
         char *field_content = NULL;
 
         char c = getchar();
+        // Se for uma palavra
         if (c == '"')
         {
             field_content = read_until(stdin, '"');
@@ -474,6 +479,7 @@ s_reg_t2 *get_reg_t2_search_parameters()
             else
                 reg_t2_search->model = field_content;
         }
+        // Se for um número
         else
         {
             ungetc(c, stdin);
@@ -507,10 +513,13 @@ void free_s_reg_t2(s_reg_t2 *s_reg_t2)
 {
     if (s_reg_t2->state != NULL)
         free(s_reg_t2->state);
+
     if (s_reg_t2->city != NULL)
         free(s_reg_t2->city);
+
     if (s_reg_t2->brand != NULL)
         free(s_reg_t2->brand);
+
     if (s_reg_t2->model != NULL)
         free(s_reg_t2->model);
 
@@ -588,7 +597,7 @@ void search_by_parameters_type2(FILE *fp)
 {
     reg_t2 *reg;
     s_reg_t2 *reg_s;
-    char c;
+    char c, found = 'n';
     int verifier;
     reg_s = get_reg_t2_search_parameters();
     fseek(fp, 190, SEEK_SET); // Move o pointeiro do arquivo para o primeiro registro.
@@ -599,21 +608,37 @@ void search_by_parameters_type2(FILE *fp)
         c = fgetc(fp);
         if (c == '0')
         {
+            // Le o registro do arquivo binario e armazena na struct
             reg = t2_file_to_struct(fp);
+            // Verifica os filtros lidos da entrada com os valores da struct
             verifier = verify_reg_t2(reg, reg_s);
+            // Se a struct não tiver todos os argumentos lidos
             if (verifier == 0)
                 free_reg_t2(reg);
-
+            // Se ela tiver
             else if (verifier == 1)
+            {
+                found = 'y';
                 print_t2_register(reg);
+                free_reg_t2(reg);
+            }
 
+            // Se for o id
             else if (verifier == 2)
             {
+                found = 'y';
                 print_t2_register(reg);
+                free_reg_t2(reg);
+                // Como o id é único, não precisamos percorrer novamente
                 break;
             }
         }
     } while (c != EOF);
+
+    if (found == 'n')
+    {
+        printf("Registro inexistente.\n");
+    }
 
     free_s_reg_t2(reg_s);
 }
