@@ -53,58 +53,45 @@ typedef struct search_field_register_type2
 } s_reg_t2;
 
 /**
- * @brief 
- * 
- * @param file_name 
- * @return FILE* 
+ * @brief Cria um arquivo binário de dados do Tipo 2 e insere os dados de
+ * cabeçalho.
+ *
+ * @param file_name nome para o arquivo binário que será criado;
+ * @return ponteiro para o arquivo criado (FILE *).
  */
 FILE *new_type2_file(char *file_name)
 {
     FILE *fp = fopen(file_name, "wb");
 
-    long int temp_value = -1; // Integer argument for fwrite
+    long int temp_value = -1; // Argumento para fwrite()
 
-    // 0 - status
-    fwrite("0", sizeof(char), 1, fp);
-    // 1 - pile top
-    fwrite(&temp_value, sizeof(long int), 1, fp);
-    // 9 - description
-    fwrite("LISTAGEM DA FROTA DOS VEICULOS NO BRASIL", sizeof(char), 40, fp);
-    // 49 - desC1
-    fwrite("CODIGO IDENTIFICADOR: ", sizeof(char), 22, fp);
-    // 71 - desC2
-    fwrite("ANO DE FABRICACAO: ", sizeof(char), 19, fp);
-    // 90 - desC3
-    fwrite("QUANTIDADE DE VEICULOS: ", sizeof(char), 24, fp);
-    // 114 - desC4
-    fwrite("ESTADO: ", sizeof(char), 8, fp);
-    // 122 - codC5
-    fwrite("0", sizeof(char), 1, fp);
-    // 123 - desC5
-    fwrite("NOME DA CIDADE: ", sizeof(char), 16, fp);
-    // 139 - codC6
-    fwrite("1", sizeof(char), 1, fp);
-    // 140 - desC6
-    fwrite("MARCA DO VEICULO: ", sizeof(char), 18, fp);
-    // 158 - codC7
-    fwrite("2", sizeof(char), 1, fp);
-    // 159 - desC7
-    fwrite("MODELO DO VEICULO: ", sizeof(char), 19, fp);
-    // 178 - nextByteOffset
+    fwrite("0",                                         sizeof(char), 1, fp); // 0
+    fwrite(&temp_value,                                 sizeof(long int), 1, fp); // 1
+    fwrite("LISTAGEM DA FROTA DOS VEICULOS NO BRASIL",  sizeof(char), 40, fp); // 9
+    fwrite("CODIGO IDENTIFICADOR: ",                    sizeof(char), 22, fp); // 49
+    fwrite("ANO DE FABRICACAO: ",                       sizeof(char), 19, fp); // 71
+    fwrite("QUANTIDADE DE VEICULOS: ",                  sizeof(char), 24, fp); // 90
+    fwrite("ESTADO: ",                                  sizeof(char), 8, fp); // 114
+    fwrite("0",                                         sizeof(char), 1, fp); // 122
+    fwrite("NOME DA CIDADE: ",                          sizeof(char), 16, fp); // 123
+    fwrite("1",                                         sizeof(char), 1, fp); // 139
+    fwrite("MARCA DO VEICULO: ",                        sizeof(char), 18, fp); // 140
+    fwrite("2",                                         sizeof(char), 1, fp); // 158
+    fwrite("MODELO DO VEICULO: ",                       sizeof(char), 19, fp); // 159
     temp_value = 0;
-    fwrite(&temp_value, sizeof(long int), 1, fp);
-    // 186 - numRemovedRegisters
+    fwrite(&temp_value,                                 sizeof(long int), 1, fp); // 178
     int temp_value2 = 0;
-    fwrite(&temp_value2, sizeof(int), 1, fp);
+    fwrite(&temp_value2,                                sizeof(int), 1, fp);  // 186
 
     return fp;
 }
 
 /**
- * @brief 
- * 
- * @param fp 
- * @return reg_t2* 
+ * @brief Lê de um arquivo .csv os dados de um registro e insere em uma struct
+ * register_type2.
+ *
+ * @param fp ponteiro para o arquivo .csv;
+ * @return ponteiro para a struct do registro lido (reg_t2*).
  */
 reg_t2 *read_t2_register_from_csv(FILE *fp)
 {
@@ -199,23 +186,24 @@ reg_t2 *read_t2_register_from_csv(FILE *fp)
 }
 
 /**
- * @brief 
- * 
- * @param input 
- * @param output 
+ * @brief Lê e escreve em um arquivo binário (.bin) todos os registros de um
+ * arquivo .csv, um registro por vez.
+ *
+ * @param input arquivo .cvs de entrada;
+ * @param output arquivo .bin de saida.
  */
 void read_and_write_all_type2(FILE *input, FILE *output)
 {
-    // Move file pointer to the first register.
+    // Move o pointeiro do arquivo para o primeiro registro.
     fseek(input, 61, SEEK_SET);
-    char c; // EOF verifier.
+    char c; // verificador EOF.
 
     do
     {
-        // Get data from csv and store it in struct reg_t2.
+        // Lê dados do .csv e armazena na struct register_type2.
         reg_t2 *reg = read_t2_register_from_csv(input);
 
-        // Write the elements from the struct in the binary file.
+        // Escreve os elementos da struct no arquivo binário.
         fwrite(&reg->removed, sizeof(char), 1, output);
         fwrite(&reg->register_size, sizeof(int), 1, output);
         fwrite(&reg->next, sizeof(long int), 1, output);
@@ -252,7 +240,7 @@ void read_and_write_all_type2(FILE *input, FILE *output)
 
         free(reg);
 
-        // Verify EOF.
+        // Verifica EOF
         c = fgetc(input);
         if (c != EOF)
         {
@@ -261,20 +249,21 @@ void read_and_write_all_type2(FILE *input, FILE *output)
         }
     } while (c != EOF);
 
-    // Store nextByteOffset and write it on the binary file.
+    // Armazena nextByteOffset e escreve ele no arquivo binário.
     long int temp = ftell(output);
-    fseek(output, 178, SEEK_SET); // nextByteOffset starts in byte 178.
+    fseek(output, 178, SEEK_SET); // nextByteOffset começa no byte 178.
     fwrite(&temp, sizeof(long int), 1, output);
 
-    // Finish binary file write.
+    // Termina de escrever no arquivo binário.
     fseek(output, 0, SEEK_SET);
     fwrite("1", sizeof(char), 1, output);
 }
 
 /**
- * @brief 
- * 
- * @param reg 
+ * @brief Desaloca um struct register_type2 e também, caso tenha, as strings contidas
+ * nele.
+ *
+ * @param reg ponteiro para a struct que deve ser desalocada.
  */
 void free_reg_t2(reg_t2 *reg)
 {
@@ -301,9 +290,9 @@ void free_reg_t2(reg_t2 *reg)
 }
 
 /**
- * @brief 
- * 
- * @param reg 
+ * @brief Imprime na saída padrão os dados contidos em uma struct register_type2.
+ *
+ * @param reg ponteiro para a struct que deve ser impressa.
  */
 void print_t2_register(reg_t2 *reg)
 {
@@ -351,15 +340,16 @@ void print_t2_register(reg_t2 *reg)
 
     printf("\n");
 
-    free(reg->state); // Aloccated, but not printed.
+    free(reg->state); // Alocado, mas não impresso.
     free(reg);
 }
 
 /**
- * @brief 
- * 
- * @param fp 
- * @return reg_t2* 
+ * @brief Lê um registro de um arquivo binário e armazena ele em uma struct
+ * register_type2.
+ *
+ * @param fp ponteiro para o arquivo binário;
+ * @return reg_t2* ponteiro para a struct produzida.
  */
 reg_t2 *t2_file_to_struct(FILE *fp)
 {
@@ -389,7 +379,7 @@ reg_t2 *t2_file_to_struct(FILE *fp)
         fread(&size, sizeof(int), 1, fp);
         fread(cod, sizeof(char), 1, fp);
 
-        // codC5 - city
+        // codC5 - Cidade
         if (strcmp(cod, "0") == 0)
         {
             reg->city_namesize = size;
@@ -397,7 +387,7 @@ reg_t2 *t2_file_to_struct(FILE *fp)
             reg->city = calloc((reg->city_namesize + 1), sizeof(char));
             fread(reg->city, sizeof(char), reg->city_namesize, fp);
         }
-        // cod6 - brand
+        // cod6 - Marca
         else if (strcmp(cod, "1") == 0)
         {
             reg->brand_namesize = size;
@@ -405,7 +395,7 @@ reg_t2 *t2_file_to_struct(FILE *fp)
             reg->brand = calloc((reg->brand_namesize + 1), sizeof(char));
             fread(reg->brand, sizeof(char), reg->brand_namesize, fp);
         }
-        // cod7 - model
+        // cod7 - Model
         else
         {
             reg->model_namesize = size;
@@ -421,19 +411,19 @@ reg_t2 *t2_file_to_struct(FILE *fp)
 }
 
 /**
- * @brief 
- * 
- * @param fp 
+ * @brief Imprime todos os registros presentes em um arquivo binário.
+ *
+ * @param fp ponteiro para o arquivo binário.
  */
 void print_all_from_bin_type2(FILE *fp)
 {
     char c;
     reg_t2 *reg;
-    fseek(fp, 190, SEEK_SET); // Move file pointer to the first register.
+    fseek(fp, 190, SEEK_SET); // Move o pointeiro do arquivo para o primeiro registro.
 
     do
     {
-        // Status verification
+        // Verificação de status
         c = fgetc(fp);
         if (c == '0')
         {
@@ -444,9 +434,10 @@ void print_all_from_bin_type2(FILE *fp)
 }
 
 /**
- * @brief
- * 
- * @return s_reg_t2* 
+ * @brief Lê da entrada padrão os parâmetros de busca de registros e armazena
+ * em uma struct search_field_register_type2.
+ *
+ * @return s_reg_t2* pointeiro para a struct search_field_register_type2.
  */
 s_reg_t2 *get_reg_t2_search_parameters()
 {
@@ -506,9 +497,11 @@ s_reg_t2 *get_reg_t2_search_parameters()
 }
 
 /**
- * @brief 
- * 
- * @param s_reg_t2 
+ * @brief Desaloca uma struct search_field_register_type2 e, caso possua, as
+ * strings alocadas dentro dela.
+ *
+ * @param s_reg_t2 ponteiro para a struct search_field_register_type2 que será
+ * desalocada.
  */
 void free_s_reg_t2(s_reg_t2 *s_reg_t2)
 {
@@ -525,22 +518,19 @@ void free_s_reg_t2(s_reg_t2 *s_reg_t2)
 }
 
 /**
- * @brief 
- * 
- * @param reg 
- * @param s_reg_t2 
- * @return int 
+ * @brief Verifica se uma struct register_type2 possui todos os parâmetros
+ *  especificados em uma struct search_by_parameters_type2.
+ *
+ * @param reg ponteiro para a struct register_type2, que será verificada
+ * @param s_reg_t2 ponteiro para a struct search_field_register_type2, que possui
+ *  os parâmetros de busca
+ * @return int inteiro que informa o resultado da busca.
+ *  0 - registro não cumpre os parâmetros;
+ *  1 - registro cumpre os parâmetros;
+ *  2 -registro cumpre os parâmetros, entre eles o id.
  */
 int verify_reg_t2(reg_t2 *reg, s_reg_t2 *s_reg_t2)
 {
-    if (s_reg_t2->id != -1)
-    {
-        if (s_reg_t2->id == reg->id)
-            return 2;
-        else
-            return 0;
-    }
-
     if (s_reg_t2->year != -1)
         if (s_reg_t2->year != reg->year)
             return 0;
@@ -577,13 +567,22 @@ int verify_reg_t2(reg_t2 *reg, s_reg_t2 *s_reg_t2)
             return 0;
     }
 
+    if (s_reg_t2->id != -1)
+    {
+        if (s_reg_t2->id == reg->id)
+            return 2;
+        else
+            return 0;
+    }
+
     return 1;
 }
 
 /**
- * @brief 
- * 
- * @param fp 
+ * @brief Imprime todas as structs register_type2 de um arquivo binario que cumprem
+ *  os parâmetros especificados na entrada padrão.
+ *
+ * @param fp ponteiro para o arquivo binário.
  */
 void search_by_parameters_type2(FILE *fp)
 {
@@ -592,11 +591,11 @@ void search_by_parameters_type2(FILE *fp)
     char c;
     int verifier;
     reg_s = get_reg_t2_search_parameters();
-    fseek(fp, 190, SEEK_SET); // Move file pointer to the first register.
+    fseek(fp, 190, SEEK_SET); // Move o pointeiro do arquivo para o primeiro registro.
 
     do
     {
-        // Status verification
+        // Verificação de status
         c = fgetc(fp);
         if (c == '0')
         {
