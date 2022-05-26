@@ -1,7 +1,7 @@
 objects = main.c utils.c fixed.c variable.c
 
 all: $(objects)
-	gcc $(objects) -o main
+	gcc $(objects) -o main -g
 
 run:
 	./main
