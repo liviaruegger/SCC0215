@@ -1,6 +1,15 @@
 /**
- * @brief Módulo que trabalha com arquivos Tipo 1 (Arquivo de Dados para
- *        Registros de Tamanho Fixo)
+ * @file   fixed.c
+ * @author Ana Lívia Ruegger Saldanha (N.USP 8586691)
+ * @author André Kenji Hidaka Matsumoto (N. USP 12542689)
+ * @brief  SCC0215 - Organização de Arquivos
+ *         Trabalho 01
+ *         
+ *         Módulo que trabalha com arquivos Tipo 1 (Arquivo de Dados para
+ *         Registros de Tamanho Fixo)
+ *         
+ * @date   2022-05-26
+ * 
  */
 
 #include <stdio.h>
@@ -30,6 +39,13 @@ typedef struct register_type1
     char *model;
 }   reg_t1;
 
+/**
+ * @brief Cria um arquivo binário de dados do Tipo 1 e insere os dados de
+ * cabeçalho.
+ * 
+ * @param file_name nome para o arquivo binário que será criado;
+ * @return ponteiro para o arquivo criado (FILE *).
+ */
 FILE *new_type1_file(char *file_name)
 {
     FILE *fp = fopen(file_name, "wb");
@@ -59,6 +75,13 @@ FILE *new_type1_file(char *file_name)
     return fp;
 }
 
+/**
+ * @brief Lê de um arquivo .csv os dados de um registro e insere em uma struct
+ * register_type1.
+ * 
+ * @param fp ponteiro para o arquivo .csv;
+ * @return ponteiro para a struct do registro lido (reg_t1 *).
+ */
 static reg_t1 *read_register_from_csv(FILE *fp)
 {
     reg_t1 *reg = malloc(sizeof(reg_t1));
@@ -139,6 +162,11 @@ static reg_t1 *read_register_from_csv(FILE *fp)
     return reg;
 }
 
+/**
+ * @brief Desaloca a memória utilizada por um registro (struct register_type1).
+ * 
+ * @param reg ponteiro para a struct que deve ser desalocada.
+ */
 static void free_register(reg_t1 *reg)
 {   
     if (reg)
@@ -151,6 +179,13 @@ static void free_register(reg_t1 *reg)
     }
 }
 
+/**
+ * @brief Chama a função que lê um registro de um arquivo .csv e escreve esse
+ * registro em um arquivo binário de dados (criado previamente).
+ * 
+ * @param input arquivo .csv de entrada; 
+ * @param output arquivo .bin de saída.
+ */
 static void read_and_write_register(FILE *input, FILE *output)
 {
     reg_t1 *reg = read_register_from_csv(input);
@@ -199,6 +234,13 @@ static void read_and_write_register(FILE *input, FILE *output)
     free_register(reg);
 }
 
+/**
+ * @brief Lê e escreve em um arquivo de dados .bin todos os registros contidos
+ * em um arquivo .csv, um registro por vez.
+ * 
+ * @param input arquivo .csv de entrada; 
+ * @param output arquivo .bin de saída.
+ */
 void read_and_write_all_type1(FILE *input, FILE *output)
 {   
     char *input_header = read_until(input, '\n');
@@ -223,6 +265,13 @@ void read_and_write_all_type1(FILE *input, FILE *output)
     free(input_header);
 }
 
+/**
+ * @brief Lê de um arquivo binário os dados de um registro e insere em uma
+ * struct register_type1.
+ * 
+ * @param fp ponteiro para o arquivo binário de dados;
+ * @return ponteiro para a struct do registro lido (reg_t1 *).
+ */
 static reg_t1 *read_register_from_bin(FILE *fp)
 {
     reg_t1 *reg = malloc(sizeof(reg_t1));
@@ -293,6 +342,12 @@ static reg_t1 *read_register_from_bin(FILE *fp)
     return reg;
 }
 
+/**
+ * @brief Imprime de forma organizada, na saída padrão, os dados contidos em
+ * uma struct register_type1.
+ * 
+ * @param reg ponteiro para a struct do registro que deve ser impresso. 
+ */
 static void print_register_info(reg_t1 *reg)
 {
     if (reg->removed == '1')
@@ -317,6 +372,12 @@ static void print_register_info(reg_t1 *reg)
     else printf("QUANTIDADE DE VEICULOS: NAO PREENCHIDO\n\n");
 }
 
+/**
+ * @brief Imprime os dados de todos os registros contidos em um arquivo de
+ * dados binário do Tipo 1.
+ * 
+ * @param fp ponteiro para o arquivo binário de dados. 
+ */
 void print_all_from_bin_type1(FILE *fp)
 {
     char status;
@@ -340,6 +401,12 @@ void print_all_from_bin_type1(FILE *fp)
     }
 }
 
+/**
+ * @brief Lê da entrada padrão os parâmetros para busca de um registro.
+ * 
+ * @return struct register_type1 contendo os paramêtros para busca (reg_t1 *);
+ * os campos que não devem ser considerados são marcados com -1 ou NULL. 
+ */
 static reg_t1 *get_search_parameters()
 {
     reg_t1 *reg = malloc(sizeof(reg_t1));
@@ -389,6 +456,17 @@ static reg_t1 *get_search_parameters()
     return reg;
 }
 
+/**
+ * @brief Compara dois registros contidos em structs register_type1, sendo um
+ * deles um registro previamente lido de um arquivo de dados e o outro um
+ * registro contendo parâmetros para busca. Caso as condições de busca sejam
+ * satisfeitas, o registro completo será impresso na saída padrão.
+ * 
+ * @param reg ponteiro para uma struct reg_t1 contendo os dados de um registro
+ * buscado, que foi lido previamente de um arquivo de dados;
+ * @param search_parameters ponteiro para a struct contendo os parâmetros de
+ * busca. 
+ */
 static void compare_and_print_if_matched(reg_t1 *reg, reg_t1 *search_parameters)
 {
     if (search_parameters->id != -1 &&
@@ -422,6 +500,12 @@ static void compare_and_print_if_matched(reg_t1 *reg, reg_t1 *search_parameters)
     print_register_info(reg);
 }
 
+/**
+ * @brief Lê da entrada padrão n parâmetros para busca de registros e executa
+ * essa busca linearmente em um arquivo binário de dados.
+ * 
+ * @param fp ponteiro para o arquivo de dados no qual será feita a busca.
+ */
 void search_by_parameters_type1(FILE *fp)
 {
     char status;
@@ -450,6 +534,13 @@ void search_by_parameters_type1(FILE *fp)
     free_register(search_parameters);
 }
 
+/**
+ * @brief A partir de um RNN, busca um registro epecífico em um arquivo binário
+ * e imprime seus dados na saída padrão (ou informa que ele não existe).
+ * 
+ * @param fp ponteiro para o arquivo de dados no qual será feita a busca;
+ * @param rrn número relativo do registro.
+ */
 void search_by_rrn_type1(FILE *fp, int rrn)
 {
     char status;

@@ -1,6 +1,15 @@
 /**
- * @brief Módulo que trabalha com arquivos Tipo 2 (Arquivo de Dados para
- *        Registros de Tamanho Variável)
+ * @file   variable.c
+ * @author Ana Lívia Ruegger Saldanha (N.USP 8586691)
+ * @author André Kenji Hidaka Matsumoto (N. USP 12542689)
+ * @brief  SCC0215 - Organização de Arquivos
+ *         Trabalho 01
+ *         
+ *         Módulo que trabalha com arquivos Tipo 2 (Arquivo de Dados para
+ *         Registros de Tamanho Variável)
+ *         
+ * @date   2022-05-26
+ * 
  */
 
 #include <stdio.h>
@@ -185,7 +194,7 @@ reg_t2 *read_t2_register_from_csv(FILE *fp)
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-void read_and_write_register_t2(FILE *input, FILE *output)
+void read_and_write_all_type2(FILE *input, FILE *output)
 {
   // Move file pointer to the first register.
   fseek(input, 61, SEEK_SET);
@@ -391,7 +400,7 @@ reg_t2 *t2_file_to_struct(FILE *fp)
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-void print_t2_register_from_file(FILE *fp)
+void print_all_from_bin_type2(FILE *fp)
 {
   char c;
   reg_t2 *reg;
@@ -534,7 +543,7 @@ int verify_reg_t2(reg_t2 *reg, s_reg_t2 *s_reg_t2)
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-void search_t2_parameter(FILE *fp)
+void search_by_parameters_type2(FILE *fp)
 {
   reg_t2 *reg;
   s_reg_t2 *reg_s;
