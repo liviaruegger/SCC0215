@@ -234,8 +234,9 @@ static reg_t1 *read_register_from_bin(FILE *fp)
     fread(&reg->year,    sizeof(int),  1, fp);
     fread(&reg->qtt,     sizeof(int),  1, fp);
 
-    reg->state = malloc(sizeof(char) * 2);
+    reg->state = malloc(sizeof(char) * 3);
     fread(reg->state, sizeof(char), 2, fp);
+    reg->state[2] = '\0';
 
     // Campos de tamanho variável
     reg->city_namesize  = 0;
@@ -339,8 +340,6 @@ void print_all_from_bin_type1(FILE *fp)
     }
 }
 
-// ------------------------------ funcionalidade 3 ---------------------------------------
-
 static reg_t1 *get_search_parameters()
 {
     reg_t1 *reg = malloc(sizeof(reg_t1));
@@ -372,8 +371,6 @@ static reg_t1 *get_search_parameters()
             else if (strcmp(field_name, "cidade") == 0) reg->city  = field_content;
             else if (strcmp(field_name, "marca")  == 0) reg->brand = field_content;
             else if (strcmp(field_name, "modelo") == 0) reg->model = field_content;
-
-            free(field_content);
         }
         else
         {
@@ -406,20 +403,20 @@ static void compare_and_print_if_matched(reg_t1 *reg, reg_t1 *search_parameters)
         search_parameters->qtt != reg->qtt)
         return;
     
-    if (search_parameters->state != NULL &&
-        strcmp(search_parameters->state, reg->state) != 0)
+    if ((search_parameters->state != NULL) && 
+        (reg->state == NULL || strcmp(search_parameters->state, reg->state) != 0))
         return;
     
-    if (search_parameters->city != NULL &&
-        strcmp(search_parameters->city, reg->city) != 0)
+    if ((search_parameters->city != NULL) &&
+        (reg->city == NULL || strcmp(search_parameters->city, reg->city) != 0))
         return;
 
-    if (search_parameters->brand != NULL &&
-        strcmp(search_parameters->brand, reg->brand) != 0)
+    if ((search_parameters->brand != NULL) &&
+        (reg->brand == NULL || strcmp(search_parameters->brand, reg->brand) != 0))
         return;
     
-    if (search_parameters->model != NULL &&
-        strcmp(search_parameters->model, reg->model) != 0)
+    if ((search_parameters->model != NULL) &&
+        (reg->model == NULL || strcmp(search_parameters->model, reg->model) != 0))
         return;
 
     print_register_info(reg);
@@ -452,11 +449,6 @@ void search_by_parameters_type1(FILE *fp)
 
     free_register(search_parameters);
 }
-
-
-
-
-// ------------------------------- funcionalidade 4 --------------------------------------
 
 void search_by_rrn_type1(FILE *fp, int rrn)
 {
