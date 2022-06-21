@@ -202,9 +202,8 @@ void read_and_write_all_type2(FILE *input, FILE *output)
 {
     // Move o pointeiro do arquivo para o primeiro registro.
     fseek(input, 61, SEEK_SET);
-    char c; // verificador EOF.
-
-    do
+    char c = fgetc(input);
+    while (c != EOF)
     {
         // Lê dados do .csv e armazena na struct register_type2.
         reg_t2 *reg = read_t2_register_from_csv(input);
@@ -256,7 +255,7 @@ void read_and_write_all_type2(FILE *input, FILE *output)
             fputc(c, input);
             fseek(input, -1, SEEK_CUR);
         }
-    } while (c != EOF);
+    }
 
     // Armazena nextByteOffset e escreve ele no arquivo binário.
     long int temp = ftell(output);
