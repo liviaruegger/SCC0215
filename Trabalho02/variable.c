@@ -461,19 +461,23 @@ s_reg_t2 *get_reg_t2_search_parameters()
     // Leitura dos parâmetros na stdin
     int n;
 
-    scanf("%d", &n);
+    scanf(" %d", &n);
+    printf("n = %d\n", n);
     getchar(); // Consome o '\n'
 
     for (int i = 0; i < n; i++)
     {
         char *field_name = read_word(stdin);
+        printf("field_name = %s\n", field_name);
         char *field_content = NULL;
 
         char c = getchar();
+        printf("\nc = %c\n", c);
         // Se for uma palavra
         if (c == '"')
         {
             field_content = read_until(stdin, '"');
+            printf("field_content = %s\n", field_content);
             getchar(); // Consome o '\n'
 
             if (strcmp(field_name, "cidade") == 0)
@@ -489,7 +493,8 @@ s_reg_t2 *get_reg_t2_search_parameters()
         {
             ungetc(c, stdin);
             int value;
-            scanf(" %d", &value);
+            scanf(" %d ", &value);
+            printf("value = %d\n", value);
 
             if (strcmp(field_name, "id") == 0)
                 reg_t2_search->id = value;
@@ -655,7 +660,36 @@ void search_by_parameters_type2(FILE *fp)
  *
  * @return ponteiro para o arquivo de indices criado (FILE *)
  */
-FILE *new_type2_index_header (char *file_name)
+int binarySearch (t2_index **index, int beg, int end, int value)
+{
+    int mid;
+    if(end >= beg)
+    {
+        mid = (beg + end) / 2;
+        if(index[mid]->id == value)
+        {
+            return mid;
+        }
+        else if(index[mid]->id < value)
+        {
+            return binarySearch(index, mid + 1, end, value);
+        }
+        else
+        {
+            return binarySearch(index, beg, mid - 1, value);
+        }
+    }
+    return -1;
+}
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+FILE *new_t2_index_header (char *file_name)
 {
     FILE *fp = fopen(file_name, "wb");
     fwrite("0", sizeof(char), 1, fp);
@@ -685,7 +719,14 @@ int read_type2_id (FILE *fp)
  *
  * @return ponteiro para o arquivo de indices criado (FILE *)
  */
-
+void free_type2_index (t2_index **p, int size)
+{
+    for(int i = 0; i < size; i++)
+    {
+        free(p[i]);
+    }
+    free(p);
+}
 
 /**
  * @brief Escreve o cabeçalho do arquivo de indices.
@@ -694,11 +735,34 @@ int read_type2_id (FILE *fp)
  *
  * @return ponteiro para o arquivo de indices criado (FILE *)
  */
-type2_index *create_index_ram (FILE *fp)
+
+t2_index **add_t2_index_entry (t2_index **index, int *size, int id, long int off)
 {
-    type2_index index = NULL;
-    int id, tamanho_registro, i = 0;
+    *size = *size + 1;
+
+    t2_index *entry = malloc(sizeof(t2_index));
+    entry->id = id;
+    entry->offset = off;
+
+    index = realloc(index, *size * sizeof(t2_index*));
+    index[*size - 1] = entry;
+
+    return index;
+}
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+t2_index **create_index_ram (FILE *fp, int *size)
+{
+    t2_index **index = NULL;
+    int id, tamanho_registro;
     long int offset;
+    *size = 0;
 
     // Verificação de status
     char c = fgetc(fp);
@@ -714,18 +778,50 @@ type2_index *create_index_ram (FILE *fp)
         {
             offset = ftell(fp) - 5; // -5, por causa das leituras
             id = read_type2_id(fp);
-
-            index = realloc(index, i++);
-            index[i - 1] =
-
-
-            fseek(data_fp, (tamanho_registro - 17), SEEK_CUR);
+            index = add_t2_index_entry(index, size, id, offset);
+            fseek(fp, (tamanho_registro - 17), SEEK_CUR);
         }
         else
         {
-            fseek(data_fp, tamanho_registro - 5, SEEK_CUR);
+            fseek(fp, tamanho_registro - 5, SEEK_CUR);
         }
-        c = fgetc(data_fp);
+        c = fgetc(fp);
+    }
+
+    return index;
+}
+
+void insertionSort (t2_index **rp, int size)
+{
+	int j;
+	for(j = 1; j < size; j++)
+    {
+		int chave = rp[j]->id;
+		int i = j - 1;
+		while (i >= 0 && rp[i]->id > chave){
+            rp[i + 1] = rp[i];
+			i--;
+		}
+		rp[i + 1] = rp[j];
+	}
+}
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+void t2_index_ram_to_disk (t2_index **rp, int index_size, FILE *fp)
+{
+    fseek(fp, 0, SEEK_SET);
+    fwrite("0", sizeof(char), 1, fp);
+
+    for (int i = 0; i < index_size; i++)
+    {
+        fwrite(&rp[i]->id, sizeof(int), 1, fp);
+        fwrite(&rp[i]->offset, sizeof(long int), 1, fp);
     }
 }
 
@@ -736,12 +832,49 @@ type2_index *create_index_ram (FILE *fp)
  *
  * @return ponteiro para o arquivo de indices criado (FILE *)
  */
-FILE *new_type2_index_file (FILE *data_fp, char *file_name)
+
+t2_index **t2_index_disk_to_ram (int *index_size, FILE *fp)
 {
-    FILE *index_fp = new_type2_index_header(file_name);
+    t2_index **index = NULL;
+    fseek(fp, 0, SEEK_SET);
+    char c = fgetc(fp);
+
+    if (c == '1')
+    {
+        *index_size = 0;
+        int id;
+        long int offset;
+
+        while (fread(&id, sizeof(int), 1, fp) == 1)
+        {
+            fread(&offset, sizeof(long int), 1, fp);
+            index = add_t2_index_entry(index, index_size, id, offset);
+        }
+    }
+    return index;
+}
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+FILE *new_t2_index_file (FILE *data_fp, char *file_name)
+{
+    FILE *index_fp = new_t2_index_header(file_name);
+    t2_index **index = NULL;
+    int index_size = 0;
 
     fseek(data_fp, 190, SEEK_SET); // Move o pointeiro do arquivo para o primeiro registro.
 
+    index = create_index_ram(data_fp, &index_size);
+    insertionSort(index, index_size);
+
+    t2_index_ram_to_disk(index, index_size, index_fp);
+
+    /*
     // Verificação de status
     char c = fgetc(data_fp);
     int id, tamanho_registro;
@@ -769,10 +902,183 @@ FILE *new_type2_index_file (FILE *data_fp, char *file_name)
         }
         c = fgetc(data_fp);
     }
+    */
+    free_type2_index(index, index_size);
 
     // Termina de escrever no arquivo binário.
     fseek(index_fp, 0, SEEK_SET);
     fwrite("1", sizeof(char), 1, index_fp);
 
     return index_fp;
+}
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+long int get_list_start(FILE *data_fp)
+{
+    long int offset;
+    fseek(data_fp, 1, SEEK_SET);
+    fread(&offset, sizeof(long int), 1, data_fp);
+    return offset;
+}
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+void update_list_start(FILE *data_fp, long int new_offset, int new_size)
+{
+    long int aux, ant = -1, prox, topo;
+    int aux_size;
+
+    fseek(data_fp, 1, SEEK_SET); // vai para o campo 'topo'
+    fread(&aux, sizeof(long int), 1, data_fp);
+    topo = aux;
+
+    if(aux != -1)
+    {
+        fseek(data_fp, aux + 1, SEEK_SET);
+        fread(&aux_size, sizeof(int), 1, data_fp);
+        fread(&prox, sizeof(long int), 1, data_fp);
+    }
+
+    while(aux != -1 && new_size < aux_size)
+    {
+        ant = aux;
+        aux = prox;
+
+        if(aux != -1)
+        {
+            fseek(data_fp, aux + 1, SEEK_SET);
+            fread(&aux_size, sizeof(int), 1, data_fp);
+            fread(&prox, sizeof(long int), 1, data_fp);
+        }
+    }
+
+    // Lista vazia / Inserir no começo
+    if (ant == -1)
+    {
+        fseek(data_fp, new_offset + 5, SEEK_SET);
+        fwrite(&topo, sizeof(long int), 1, data_fp);
+        fseek(data_fp, 1, SEEK_SET);
+        fwrite(&new_offset, sizeof(long int), 1, data_fp);
+    }
+    else
+    {
+        fseek(data_fp, new_offset + 5, SEEK_SET);
+        fwrite(&prox, sizeof(long int), 1, data_fp);
+        fseek(data_fp, ant + 5, SEEK_SET);
+        fwrite(&new_offset, sizeof(long int), 1, data_fp);
+    }
+}
+
+
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+void type2_mark_removed(FILE *data_fp, long int offset)
+{
+    int size;
+
+    if (ftell(data_fp) != offset)
+    {
+        fseek(data_fp, offset, SEEK_SET);
+    }
+    fwrite("1", sizeof(char), 1, data_fp);
+    fread(&size, sizeof(int), 1, data_fp);
+
+    update_list_start(data_fp, offset, size);
+
+}
+
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **index)
+{
+    s_reg_t2 *reg_search = get_reg_t2_search_parameters();
+
+    if(reg_search->id != -1)
+    {
+        int position;
+        t2_index **index = t2_index_disk_to_ram (index_size, index_fp);
+        position = binarySearch(index, 0, *index_size - 1, reg_search->id);
+        printf("position = %d\n", position);
+        if (position != -1)
+        {
+            fseek(data_fp, index[position]->offset, SEEK_SET);
+
+
+            // Verificação de status
+            char c = fgetc(data_fp);
+            if (c == '0')
+            {
+                reg_t2 *reg = t2_file_to_struct(data_fp);
+
+                if(verify_reg_t2(reg, reg_search) != 0)
+                {
+                    type2_mark_removed(data_fp, index[position]->offset);
+                }
+                free_reg_t2(reg);
+            }
+        }
+    }
+    else
+    {
+
+    }
+
+    free_s_reg_t2(reg_search);
+
+}
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+void rewrite_t2_index(t2_index **index, int index_size, FILE *index_fp)
+{
+    insertionSort(index, index_size);
+    t2_index_ram_to_disk(index, index_size, index_fp);
+}
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+void funct6(FILE *input_fp, FILE *index_fp)
+{
+    int n, index_size;
+    t2_index **index;
+    scanf(" %d", &n);
+
+    for(int i = 0; i < n; i++)
+    {
+        type2_deletion(input_fp, index_fp, &index_size, index);
+    }
+    rewrite_t2_index(index, index_size, index_fp);
 }

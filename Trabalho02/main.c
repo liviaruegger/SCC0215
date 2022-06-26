@@ -28,6 +28,7 @@ int main()
 
     FILE *input_fp = NULL;
     if (func == 1) input_fp = fopen(input_file, "r");
+    else if (func == 6) input_fp = fopen(input_file, "r+b");
     else input_fp = fopen(input_file, "rb");
 
     if (!input_fp)
@@ -94,7 +95,7 @@ int main()
             }
             else if (file_type[4] == '2')
             {
-                output_fp = new_type2_index_file(input_fp, output_file);
+                output_fp = new_t2_index_file(input_fp, output_file);
 
                 fclose(output_fp);
                 binarioNaTela(output_file);
@@ -109,7 +110,12 @@ int main()
             }
             else if (file_type[4] == '2')
             {
+                char *index_file = read_word(stdin);
+                FILE *index_fp = fopen(index_file, "r+b");
 
+                funct6(input_fp, index_fp);
+                fclose(index_fp);
+                binarioNaTela(index_file);
             }
         break;
 
