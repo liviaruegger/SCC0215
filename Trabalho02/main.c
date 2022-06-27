@@ -24,6 +24,7 @@ int main()
     char *file_type = read_word(stdin);
     char *input_file = read_word(stdin);
     char *output_file = NULL;
+    char *index_file = NULL;
     FILE *output_fp = NULL;
 
     FILE *input_fp = NULL;
@@ -110,12 +111,11 @@ int main()
             }
             else if (file_type[4] == '2')
             {
-                char *index_file = read_word(stdin);
+                index_file = read_word(stdin);
                 FILE *index_fp = fopen(index_file, "r+b");
 
-                funct6(input_fp, index_fp);
-                fclose(index_fp);
-                binarioNaTela(index_file);
+                funct6(input_fp, index_fp, index_file);
+
             }
         break;
 
@@ -143,6 +143,14 @@ int main()
     }
 
     fclose(input_fp);
+    if (func == 6)
+    {
+        binarioNaTela(input_file);
+        
+        binarioNaTela(index_file);
+        free(index_file);
+    }
+
     free(file_type);
     free(input_file);
 

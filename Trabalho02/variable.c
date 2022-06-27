@@ -462,22 +462,22 @@ s_reg_t2 *get_reg_t2_search_parameters()
     int n;
 
     scanf(" %d", &n);
-    printf("n = %d\n", n);
+    //printf("n = %d\n", n);
     getchar(); // Consome o '\n'
 
     for (int i = 0; i < n; i++)
     {
         char *field_name = read_word(stdin);
-        printf("field_name = %s\n", field_name);
+        //printf("field_name = %s\n", field_name);
         char *field_content = NULL;
 
         char c = getchar();
-        printf("\nc = %c\n", c);
+        //printf("\nc = %c\n", c);
         // Se for uma palavra
         if (c == '"')
         {
             field_content = read_until(stdin, '"');
-            printf("field_content = %s\n", field_content);
+            //printf("field_content = %s\n", field_content);
             getchar(); // Consome o '\n'
 
             if (strcmp(field_name, "cidade") == 0)
@@ -494,7 +494,7 @@ s_reg_t2 *get_reg_t2_search_parameters()
             ungetc(c, stdin);
             int value;
             scanf(" %d ", &value);
-            printf("value = %d\n", value);
+            //printf("value = %d\n", value);
 
             if (strcmp(field_name, "id") == 0)
                 reg_t2_search->id = value;
@@ -653,6 +653,66 @@ void search_by_parameters_type2(FILE *fp)
     free_s_reg_t2(reg_s);
 }
 
+/**
+ * @brief Imprime todas as structs register_type2 de um arquivo binario que cumprem
+ *  os parâmetros especificados na entrada padrão.
+ *
+ * @param fp ponteiro para o arquivo binário.
+ */
+long int *modded_search_by_parameters_type2(FILE *fp, s_reg_t2 *reg_s, int *size)
+{
+    long int *array = NULL;
+    char c;
+    *size = 0;
+    reg_t2 *reg;
+    int verifier, size_skip;
+    long int offset;
+    fseek(fp, 190, SEEK_SET); // Move o pointeiro do arquivo para o primeiro registro.
+
+    offset = ftell(fp);
+    c = fgetc(fp);
+    while (c != EOF)
+    {
+        if (c == '0')
+        {
+            // Le o registro do arquivo binario e armazena na struct
+            reg = t2_file_to_struct(fp);
+            // Verifica os filtros lidos da entrada com os valores da struct
+            verifier = verify_reg_t2(reg, reg_s);
+            // Se a struct não tiver todos os argumentos lidos
+            if (verifier == 0)
+                free_reg_t2(reg);
+            // Se ela tiver
+            else if (verifier == 1)
+            {
+                *size = *size + 1;
+                array = realloc(array, *size * sizeof(long int));
+                array[*size - 1] = offset;
+                free_reg_t2(reg);
+            }
+
+            // Se for o id
+            else if (verifier == 2)
+            {
+                *size = *size + 1;
+                array = realloc(array, *size * sizeof(long int));
+                array[*size - 1] = offset;
+                free_reg_t2(reg);
+                // Como o id é único, não precisamos percorrer novamente
+                break;
+            }
+        }
+        else
+        {
+            fread(&size_skip, sizeof(int), 1, fp);
+            fseek(fp, size_skip, SEEK_CUR);
+        }
+        offset = ftell(fp);
+        c = fgetc(fp);
+    }
+
+    return array;
+}
 /**
  * @brief Escreve o cabeçalho do arquivo de indices.
  *
@@ -974,7 +1034,7 @@ void update_list_start(FILE *data_fp, long int new_offset, int new_size)
     else
     {
         fseek(data_fp, new_offset + 5, SEEK_SET);
-        fwrite(&prox, sizeof(long int), 1, data_fp);
+        fwrite(&aux, sizeof(long int), 1, data_fp);
         fseek(data_fp, ant + 5, SEEK_SET);
         fwrite(&new_offset, sizeof(long int), 1, data_fp);
     }
@@ -1012,30 +1072,41 @@ void type2_mark_removed(FILE *data_fp, long int offset)
  *
  * @return ponteiro para o arquivo de indices criado (FILE *)
  */
-void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **index)
+void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **index, int *qnt)
 {
     s_reg_t2 *reg_search = get_reg_t2_search_parameters();
+    int position;
 
+    //printf("%d", reg_search->id);
     if(reg_search->id != -1)
     {
-        int position;
-        t2_index **index = t2_index_disk_to_ram (index_size, index_fp);
         position = binarySearch(index, 0, *index_size - 1, reg_search->id);
-        printf("position = %d\n", position);
+        //printf("position = %d\n", position);
         if (position != -1)
         {
+            //printf("offset = %ld\n", index[position]->offset);
             fseek(data_fp, index[position]->offset, SEEK_SET);
 
 
             // Verificação de status
             char c = fgetc(data_fp);
+            //printf("%c\n", c);
             if (c == '0')
             {
                 reg_t2 *reg = t2_file_to_struct(data_fp);
+                //print_t2_register(reg);
 
                 if(verify_reg_t2(reg, reg_search) != 0)
                 {
+                    //printf("passou\n\n");
                     type2_mark_removed(data_fp, index[position]->offset);
+                    free(index[position]);
+                    for(int j = position; j < *index_size - 1; j++)
+                    {
+                        index[j] = index[j + 1];
+                    }
+                    *index_size = *index_size - 1;
+                    *qnt = *qnt + 1;
                 }
                 free_reg_t2(reg);
             }
@@ -1043,9 +1114,35 @@ void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **i
     }
     else
     {
+        int f3_array_size;
+        long int *array = modded_search_by_parameters_type2(data_fp, reg_search, &f3_array_size);
 
+        for(int i = 0; i < f3_array_size; i++)
+        {
+            int id;
+            //printf("offset = %ld\n", array[i]);
+            type2_mark_removed(data_fp, array[i]);
+            fseek(data_fp, array[i] + 13, SEEK_SET);
+            fread(&id, sizeof(int), 1, data_fp);
+            //printf("remover: id = %d\n", id);
+            if(id != -1)
+            {
+                position = binarySearch(index, 0, *index_size - 1, id);
+                //printf("posicao = %d\n", position);
+                if (position != -1)
+                {
+                    free(index[position]);
+                    for(int j = position; j < *index_size - 1; j++)
+                    {
+                        index[j] = index[j + 1];
+                    }
+                    *index_size = *index_size - 1;
+                    *qnt = *qnt + 1;
+                }
+            }
+        }
+        free(array);
     }
-
     free_s_reg_t2(reg_search);
 
 }
@@ -1059,7 +1156,7 @@ void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **i
  */
 void rewrite_t2_index(t2_index **index, int index_size, FILE *index_fp)
 {
-    insertionSort(index, index_size);
+    insertionSort(index, index_size - 1);
     t2_index_ram_to_disk(index, index_size, index_fp);
 }
 
@@ -1070,15 +1167,86 @@ void rewrite_t2_index(t2_index **index, int index_size, FILE *index_fp)
  *
  * @return ponteiro para o arquivo de indices criado (FILE *)
  */
-void funct6(FILE *input_fp, FILE *index_fp)
+void fila(FILE *fp)
 {
-    int n, index_size;
-    t2_index **index;
+    long int aux, ant = -1, prox, topo;
+    int aux_size;
+
+    fseek(fp, 1, SEEK_SET); // vai para o campo 'topo'
+    fread(&aux, sizeof(long int), 1, fp);
+    if(aux != -1)
+    {
+        fseek(fp, aux + 1, SEEK_SET);
+        fread(&aux_size, sizeof(int), 1, fp);
+        fread(&prox, sizeof(long int), 1, fp);
+    }
+
+    topo = aux;
+
+    while(aux != -1)
+    {
+        ant = aux;
+        aux = prox;
+
+        if(aux != -1)
+        {
+            fseek(fp, aux + 1, SEEK_SET);
+            fread(&aux_size, sizeof(int), 1, fp);
+            fread(&prox, sizeof(long int), 1, fp);
+        }
+    }
+}
+
+/**
+ * @brief Escreve o cabeçalho do arquivo de indices.
+ *
+ * @param char *file_name nome do arquivo de indices que será criado
+ *
+ * @return ponteiro para o arquivo de indices criado (FILE *)
+ */
+void funct6(FILE *input_fp, FILE *index_fp, char *index_file)
+{
+    int n, index_size, qnt = 0;
+    t2_index **index = t2_index_disk_to_ram (&index_size, index_fp);
     scanf(" %d", &n);
+
+    fila(input_fp);
+
+    /*printf("%d\n", index_size);
+    printf("--- índice ---, size = %d\n", index_size);
+    for(int i = 0; i < index_size; i++){
+        printf("id = %d ", index[i]->id);
+        printf("offset = %ld\n", index[i]->offset);
+    }*/
 
     for(int i = 0; i < n; i++)
     {
-        type2_deletion(input_fp, index_fp, &index_size, index);
+        type2_deletion(input_fp, index_fp, &index_size, index, &qnt);
     }
-    rewrite_t2_index(index, index_size, index_fp);
+
+    /*
+    printf("--- índice ---, size = %d\n", index_size);
+    for(int i = 0; i < index_size; i++){
+        printf("id = %d ", index[i]->id);
+        printf("offset = %ld\n", index[i]->offset);
+    }*/
+    fclose(index_fp);
+
+    fila(input_fp);
+
+    FILE *fp = fopen(index_file, "wb");
+    rewrite_t2_index(index, index_size, fp);
+    fseek(fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, fp);
+    fclose(fp);
+    free_type2_index(index, index_size);
+    //printf("qnt = %d\n", qnt);
+    int temp;
+    fseek(input_fp, 186, SEEK_SET);
+    fread(&temp, sizeof(int), 1, input_fp);
+    qnt = qnt + temp;
+    fseek(input_fp, 186, SEEK_SET);
+    fwrite(&qnt, sizeof(int), 1, input_fp);
+    fseek(input_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, input_fp);
 }
