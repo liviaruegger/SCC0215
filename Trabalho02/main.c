@@ -97,8 +97,8 @@ int main()
             else if (file_type[4] == '2')
             {
                 output_fp = new_t2_index_file(input_fp, output_file);
-
                 fclose(output_fp);
+                
                 binarioNaTela(output_file);
                 free(output_file);
             }
@@ -115,7 +115,6 @@ int main()
                 FILE *index_fp = fopen(index_file, "r+b");
 
                 funct6(input_fp, index_fp, index_file);
-
             }
         break;
 
@@ -126,7 +125,10 @@ int main()
             }
             else if (file_type[4] == '2')
             {
+                index_file = read_word(stdin);
+                FILE *index_fp = fopen(index_file, "r+b");
 
+                funct7(input_fp, index_fp, index_file);
             }
         break;
 
@@ -146,7 +148,7 @@ int main()
     if (func == 6)
     {
         binarioNaTela(input_file);
-        
+
         binarioNaTela(index_file);
         free(index_file);
     }

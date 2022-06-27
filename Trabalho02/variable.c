@@ -654,22 +654,22 @@ void search_by_parameters_type2(FILE *fp)
 }
 
 /**
- * @brief Imprime todas as structs register_type2 de um arquivo binario que cumprem
- *  os parâmetros especificados na entrada padrão.
+ * @brief Retorna um vetor de offsets dos registros que satisfazem os critérios
+ * de busca.
  *
- * @param fp ponteiro para o arquivo binário.
+ * @param fp ponteiro para o arquivo de dados.
  */
 long int *modded_search_by_parameters_type2(FILE *fp, s_reg_t2 *reg_s, int *size)
 {
-    long int *array = NULL;
     char c;
-    *size = 0;
-    reg_t2 *reg;
-    int verifier, size_skip;
+    long int *array = NULL;
     long int offset;
+    int verifier, size_skip;
+    reg_t2 *reg;
+    *size = 0;
     fseek(fp, 190, SEEK_SET); // Move o pointeiro do arquivo para o primeiro registro.
 
-    offset = ftell(fp);
+    offset = ftell(fp); // Armazena o offset do registro que será lido
     c = fgetc(fp);
     while (c != EOF)
     {
@@ -679,28 +679,16 @@ long int *modded_search_by_parameters_type2(FILE *fp, s_reg_t2 *reg_s, int *size
             reg = t2_file_to_struct(fp);
             // Verifica os filtros lidos da entrada com os valores da struct
             verifier = verify_reg_t2(reg, reg_s);
-            // Se a struct não tiver todos os argumentos lidos
-            if (verifier == 0)
-                free_reg_t2(reg);
-            // Se ela tiver
-            else if (verifier == 1)
-            {
-                *size = *size + 1;
-                array = realloc(array, *size * sizeof(long int));
-                array[*size - 1] = offset;
-                free_reg_t2(reg);
-            }
+            free_reg_t2(reg);
 
-            // Se for o id
-            else if (verifier == 2)
+            if (verifier != 0)
             {
                 *size = *size + 1;
                 array = realloc(array, *size * sizeof(long int));
                 array[*size - 1] = offset;
-                free_reg_t2(reg);
-                // Como o id é único, não precisamos percorrer novamente
-                break;
             }
+            // Como o id é único, não precisamos percorrer novamente
+            if (verifier == 2) break;
         }
         else
         {
@@ -714,11 +702,14 @@ long int *modded_search_by_parameters_type2(FILE *fp, s_reg_t2 *reg_s, int *size
     return array;
 }
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Retorna o indice do registro de indice que satisfaz o id de busca.
  *
- * @param char *file_name nome do arquivo de indices que será criado
+ * @param t2_index **index vetor de structs do tipo t2_index
+ * @param int beg indice de inicio do vetor
+ * @param int end indice de fim do vetor
+ * @param int value valor a ser buscado
  *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @return indice do registro com o id buscado, retorna -1 se não for encontrado
  */
 int binarySearch (t2_index **index, int beg, int end, int value)
 {
@@ -758,11 +749,11 @@ FILE *new_t2_index_header (char *file_name)
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Retorna o id de um registro de tipo 2.
  *
- * @param char *file_name nome do arquivo de indices que será criado
+ * @param FILE *fp ponteiro do registro do arquivo
  *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @return id do registro
  */
 int read_type2_id (FILE *fp)
 {
@@ -773,11 +764,10 @@ int read_type2_id (FILE *fp)
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Desaloca o registro de indices na RAM
  *
- * @param char *file_name nome do arquivo de indices que será criado
- *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @param t2_index **p ponteiro para o vetor de indices
+ * @param int size tamanho do vetor de indices
  */
 void free_type2_index (t2_index **p, int size)
 {
@@ -789,11 +779,14 @@ void free_type2_index (t2_index **p, int size)
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Adiciona um registro no registro de indices em RAM
  *
- * @param char *file_name nome do arquivo de indices que será criado
+ * @param t2_index **index vetor de indices em RAM
+ * @param int *size ponteiro para um int que armazena o tamanho do vetor
+ * @param int id id a ser inserido
+ * @param int off offset a ser inserido
  *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @return ponteiro para o vetor de indices atualizado
  */
 
 t2_index **add_t2_index_entry (t2_index **index, int *size, int id, long int off)
@@ -811,11 +804,12 @@ t2_index **add_t2_index_entry (t2_index **index, int *size, int id, long int off
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Lê um arquivo de dados e cria o arquivo de indices em RAM
  *
- * @param char *file_name nome do arquivo de indices que será criado
+ * @param FILE *fp ponteiro para o arquivo a ser lido
+ * @param int *size ponteiro para um inteiro que armazena o tamanho do vetor
  *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @return ponteiro para o vetor de indices criado
  */
 t2_index **create_index_ram (FILE *fp, int *size)
 {
@@ -867,9 +861,11 @@ void insertionSort (t2_index **rp, int size)
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Lê o vetor de registros de indices na RAM e armazena em disco
  *
- * @param char *file_name nome do arquivo de indices que será criado
+ * @param t2_index **rp ponteiro para o vetor de indices
+ * @param int index_size tamanho do vetor de indices
+ * @param FILE *fp arquivo em disco que sera escrito
  *
  * @return ponteiro para o arquivo de indices criado (FILE *)
  */
@@ -886,11 +882,12 @@ void t2_index_ram_to_disk (t2_index **rp, int index_size, FILE *fp)
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Lê o arquivo de indices e armazena em RAM
  *
- * @param char *file_name nome do arquivo de indices que será criado
+ * @param int *index_size ponteiro para o inteiro que armazena o tamanho do vetor
+ * @param FILE *fp ponteiro para o arquivo que será lido
  *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @return ponteiro para o vetor criado
  */
 
 t2_index **t2_index_disk_to_ram (int *index_size, FILE *fp)
@@ -915,9 +912,10 @@ t2_index **t2_index_disk_to_ram (int *index_size, FILE *fp)
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Cria um arquivo de indices a partir do arquivo de dados
  *
- * @param char *file_name nome do arquivo de indices que será criado
+ * @param FILE *data_fp ponteiro para o arquivo de dados
+ * @param char *file_name nome do arquivo de indices
  *
  * @return ponteiro para o arquivo de indices criado (FILE *)
  */
@@ -934,35 +932,6 @@ FILE *new_t2_index_file (FILE *data_fp, char *file_name)
 
     t2_index_ram_to_disk(index, index_size, index_fp);
 
-    /*
-    // Verificação de status
-    char c = fgetc(data_fp);
-    int id, tamanho_registro;
-    long int offset;
-
-    while (c != EOF)
-    {
-        fread(&tamanho_registro, sizeof(int), 1, data_fp);
-        tamanho_registro += 5;  // Adiciona tamanho do campo 'removido' e
-                                // 'tamanho do registro
-
-        // Verifica se o registro foi removido
-        if (c == '0')
-        {
-            offset = ftell(data_fp) - 5; // -5, por causa das leituras
-            id = read_type2_id(data_fp);
-            fwrite(&id, sizeof(int), 1, index_fp);
-            fwrite(&offset, sizeof(long int), 1, index_fp);
-
-            fseek(data_fp, (tamanho_registro - 17), SEEK_CUR);
-        }
-        else
-        {
-            fseek(data_fp, tamanho_registro - 5, SEEK_CUR);
-        }
-        c = fgetc(data_fp);
-    }
-    */
     free_type2_index(index, index_size);
 
     // Termina de escrever no arquivo binário.
@@ -973,11 +942,11 @@ FILE *new_t2_index_file (FILE *data_fp, char *file_name)
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Retorna o campo 'topo' do cabeçalho do arquivo de dados
  *
- * @param char *file_name nome do arquivo de indices que será criado
+ * @param FILE *data_fp ponteiro para o arquivo de dados
  *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @return offset armazenado no campo 'topo'
  */
 long int get_list_start(FILE *data_fp)
 {
@@ -988,11 +957,11 @@ long int get_list_start(FILE *data_fp)
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Insere de forma decrescente um novo offset no arquivo de dados
  *
- * @param char *file_name nome do arquivo de indices que será criado
- *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @param FILE *data_fp ponteiro para o arquivo de dados
+ * @param long int new_offset novo offset a ser inserido
+ * @param int new_size tamanho do registro que foi removido
  */
 void update_list_start(FILE *data_fp, long int new_offset, int new_size)
 {
@@ -1041,13 +1010,11 @@ void update_list_start(FILE *data_fp, long int new_offset, int new_size)
 }
 
 
-
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Marca um registro como removido
  *
- * @param char *file_name nome do arquivo de indices que será criado
- *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @param FILE *data_fp ponteiro para o arquivo de dados
+ * @param long int offset offset do arquivo a ser removido
  */
 void type2_mark_removed(FILE *data_fp, long int offset)
 {
@@ -1066,35 +1033,34 @@ void type2_mark_removed(FILE *data_fp, long int offset)
 
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Lê os parâmetros de busca da entrada padrão(stdin), busca o registro
+ * e remove ele, caso possível.
  *
- * @param char *file_name nome do arquivo de indices que será criado
- *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @param FILE *data_fp ponteiro para o arquivo de dados
+ * @param FILE *index_fp ponteiro para o arquivo de indices
+ * @param int *index_size ponteiro para o inteiro que armazena o tamanho do
+ * registro de indices
+ * @param t2_index **index ponteiro para o vetor de indices em RAM
+ * @param int *qnt quantidade de registros removidos
  */
 void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **index, int *qnt)
 {
     s_reg_t2 *reg_search = get_reg_t2_search_parameters();
     int position;
 
-    //printf("%d", reg_search->id);
+    // Se tem id na busca
     if(reg_search->id != -1)
     {
         position = binarySearch(index, 0, *index_size - 1, reg_search->id);
-        //printf("position = %d\n", position);
         if (position != -1)
         {
-            //printf("offset = %ld\n", index[position]->offset);
             fseek(data_fp, index[position]->offset, SEEK_SET);
-
 
             // Verificação de status
             char c = fgetc(data_fp);
-            //printf("%c\n", c);
             if (c == '0')
             {
                 reg_t2 *reg = t2_file_to_struct(data_fp);
-                //print_t2_register(reg);
 
                 if(verify_reg_t2(reg, reg_search) != 0)
                 {
@@ -1120,15 +1086,12 @@ void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **i
         for(int i = 0; i < f3_array_size; i++)
         {
             int id;
-            //printf("offset = %ld\n", array[i]);
             type2_mark_removed(data_fp, array[i]);
             fseek(data_fp, array[i] + 13, SEEK_SET);
             fread(&id, sizeof(int), 1, data_fp);
-            //printf("remover: id = %d\n", id);
             if(id != -1)
             {
                 position = binarySearch(index, 0, *index_size - 1, id);
-                //printf("posicao = %d\n", position);
                 if (position != -1)
                 {
                     free(index[position]);
@@ -1148,11 +1111,11 @@ void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **i
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
+ * @brief Reescreve o arquivo de indices
  *
- * @param char *file_name nome do arquivo de indices que será criado
- *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @param t2_index **index ponteiro para o vetor de indices
+ * @param int index_size tamanho do registro de indices
+ * @param FILE *index_fp ponteiro para o arquivo de indices
  */
 void rewrite_t2_index(t2_index **index, int index_size, FILE *index_fp)
 {
@@ -1161,11 +1124,8 @@ void rewrite_t2_index(t2_index **index, int index_size, FILE *index_fp)
 }
 
 /**
- * @brief Escreve o cabeçalho do arquivo de indices.
- *
- * @param char *file_name nome do arquivo de indices que será criado
- *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @brief Printa a fila de offsets do arquivo de dados
+ * Obs: só para debugar
  */
 void fila(FILE *fp)
 {
@@ -1182,6 +1142,7 @@ void fila(FILE *fp)
     }
 
     topo = aux;
+    printf("topo = %ld; aux_size = %d\n", topo, aux_size);
 
     while(aux != -1)
     {
@@ -1193,7 +1154,89 @@ void fila(FILE *fp)
             fseek(fp, aux + 1, SEEK_SET);
             fread(&aux_size, sizeof(int), 1, fp);
             fread(&prox, sizeof(long int), 1, fp);
+            printf("aux = %ld; aux_size = %d\n", aux, aux_size);
         }
+    }
+}
+
+/**
+ * @brief Atualiza o campo 'status' no cabeçalho para indicar término de escrita
+ *
+ * @param FILE *fp ponteiro para o arquivo
+ */
+void update_header_status(FILE *fp)
+{
+    fseek(fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, fp);
+}
+
+/**
+ * @brief Atualiza o campo 'nroRegRem' no cabeçalho do arquivo de dados
+ *
+ * @param FILE *input_fp ponteiro para o arquivo de dados
+ * @param int qnt quantidade nova de registros removidos
+ */
+void t2_update_nroRegRem(FILE *data_fp, int qnt)
+{
+    int temp;
+    // Lê o nroRegRem do cabeçalho
+    fseek(data_fp, 186, SEEK_SET);
+    fread(&temp, sizeof(int), 1, data_fp);
+    // Atualiza nroRegRem
+    qnt = qnt + temp;
+    fseek(data_fp, 186, SEEK_SET);
+    fwrite(&qnt, sizeof(int), 1, data_fp);
+}
+
+/**
+ * @brief Lê da entrada padrão(stdin) a quantidade de registros a serem removi-
+ * dos e em seguida remove eles, se possível. Depois disso, reescreve o arquivo
+ * de índice
+ *
+ * @param FILE *input_fp ponteiro para o arquivo de dados
+ * @param FILE *index_fp ponteiro para o arquivo de indices
+ * @param char *index_file nome do arquivo de indices
+ */
+void funct6(FILE *input_fp, FILE *index_fp, char *index_file)
+{
+    int n, index_size, qnt = 0;
+    scanf(" %d", &n);
+
+    t2_index **index = t2_index_disk_to_ram (&index_size, index_fp);
+
+    for(int i = 0; i < n; i++)
+    {
+        type2_deletion(input_fp, index_fp, &index_size, index, &qnt);
+    }
+    fclose(index_fp);
+
+    index_fp = fopen(index_file, "wb");
+    rewrite_t2_index(index, index_size, index_fp);
+    update_header_status(index_fp);
+    fclose(index_fp);
+
+    t2_update_nroRegRem(input_fp, qnt);
+    update_header_status(input_fp);
+
+    free_type2_index(index, index_size);
+}
+
+/**
+ * @brief Remove as aspas de uma string
+ *
+ * @param char *s string que sera alterada
+ */
+void remove_quotes(char *s)
+{
+    int i = 0;
+    if(s[0] == '"')
+    {
+        do
+        {
+            s[i] = s[i + 1];
+            i++;
+        } while(s[i] != '"');
+        s[i - 1] = '\0';
     }
 }
 
@@ -1204,49 +1247,116 @@ void fila(FILE *fp)
  *
  * @return ponteiro para o arquivo de indices criado (FILE *)
  */
-void funct6(FILE *input_fp, FILE *index_fp, char *index_file)
+ reg_t2 *read_t2_register_from_stdin()
+ {
+     // Alocação do registro
+     reg_t2 *reg = malloc(sizeof(reg_t2));
+
+     // Preenchimento do registro...
+     reg->removed = '0';
+     reg->register_size = 0;
+
+     reg->next = -1;
+     reg->register_size += sizeof(reg->next);
+
+     char *id = read_until(stdin, ' ');
+     reg->id = atoi(id);
+     reg->register_size += sizeof(reg->id);
+     free(id);
+
+     char *ano = read_until(stdin, ' ');
+     if (ano[0] >= '0' && ano[0] <= '9')
+         reg->year = atoi(ano);
+     else
+         reg->year = -1;
+     reg->register_size += sizeof(reg->year);
+     free(ano);
+
+     char *qtt = read_until(stdin, ' ');
+     if (qtt[0] >= '0' && qtt[0] <= '9')
+         reg->qtt = atoi(qtt);
+     else
+         reg->qtt = -1;
+     reg->register_size += sizeof(reg->qtt);
+     free(qtt);
+
+     char *sigla = read_until(stdin, ' ');
+     if (strcmp(sigla, "NULO") != 0)
+     {
+         remove_quotes(sigla);
+         reg->state = sigla;
+     }
+
+     // Se não tiver estado:
+     else
+     {
+         reg->state = "$$";
+         free(sigla);
+     }
+     reg->register_size += 2;
+
+     char *cidade = read_until(stdin, ' ');
+     if (strcmp(cidade, "NULO") != 0)
+     {
+         remove_quotes(cidade);
+         reg->city_namesize = strlen(cidade);
+         reg->register_size += sizeof(reg->city_namesize);
+         reg->city = cidade;
+         reg->register_size += reg->city_namesize;
+         reg->codC5 = "0";
+         reg->register_size += 1;
+     }
+     // Se não tiver cidade:
+     else
+     {
+         reg->city_namesize = -1;
+         free(cidade);
+     }
+
+     char *marca = read_until(stdin, ' ');
+     if (strcmp(marca, "NULO") != 0)
+     {
+         remove_quotes(marca);
+         printf("marca = %s\n", marca);
+         reg->brand_namesize = strlen(marca);
+         reg->register_size += sizeof(reg->brand_namesize);
+         reg->brand = marca;
+         reg->register_size += reg->brand_namesize;
+         reg->codC6 = "1";
+         reg->register_size += 1;
+     }
+     // Se não tiver marca:
+     else
+     {
+         reg->brand_namesize = -1;
+         free(marca);
+     }
+
+     char *modelo = read_line(stdin);
+     if (strcmp(modelo, "NULO") != 0)
+     {
+         remove_quotes(modelo);
+         reg->model_namesize = strlen(modelo);
+         reg->register_size += sizeof(reg->model_namesize);
+         reg->model = modelo;
+         reg->register_size += reg->model_namesize;
+         reg->codC7 = "2";
+         reg->register_size += 1;
+     }
+     // Se não tiver modelo:
+     else
+     {
+         reg->model_namesize = -1;
+         free(modelo);
+     }
+
+     return reg;
+ }
+
+
+
+void funct7(FILE *input_fp, FILE *index_fp, char *index_file)
 {
-    int n, index_size, qnt = 0;
-    t2_index **index = t2_index_disk_to_ram (&index_size, index_fp);
-    scanf(" %d", &n);
-
-    fila(input_fp);
-
-    /*printf("%d\n", index_size);
-    printf("--- índice ---, size = %d\n", index_size);
-    for(int i = 0; i < index_size; i++){
-        printf("id = %d ", index[i]->id);
-        printf("offset = %ld\n", index[i]->offset);
-    }*/
-
-    for(int i = 0; i < n; i++)
-    {
-        type2_deletion(input_fp, index_fp, &index_size, index, &qnt);
-    }
-
-    /*
-    printf("--- índice ---, size = %d\n", index_size);
-    for(int i = 0; i < index_size; i++){
-        printf("id = %d ", index[i]->id);
-        printf("offset = %ld\n", index[i]->offset);
-    }*/
-    fclose(index_fp);
-
-    fila(input_fp);
-
-    FILE *fp = fopen(index_file, "wb");
-    rewrite_t2_index(index, index_size, fp);
-    fseek(fp, 0, SEEK_SET);
-    fwrite("1", sizeof(char), 1, fp);
-    fclose(fp);
-    free_type2_index(index, index_size);
-    //printf("qnt = %d\n", qnt);
-    int temp;
-    fseek(input_fp, 186, SEEK_SET);
-    fread(&temp, sizeof(int), 1, input_fp);
-    qnt = qnt + temp;
-    fseek(input_fp, 186, SEEK_SET);
-    fwrite(&qnt, sizeof(int), 1, input_fp);
-    fseek(input_fp, 0, SEEK_SET);
-    fwrite("1", sizeof(char), 1, input_fp);
+    reg_t2 *reg = read_t2_register_from_stdin();
+    print_t2_register(reg);
 }
