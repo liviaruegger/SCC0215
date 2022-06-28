@@ -27,4 +27,8 @@ void search_by_parameters_type1(FILE *fp);
 // Funcionalidade 4
 void search_by_rrn_type1(FILE *fp, int rrn);
 
+// Funcionalidade 5
 FILE *new_type1_index(FILE *data_fp, char *file_name);
+
+// Funcionalidade 6
+void type1_delete_from (FILE *data_fp, char *index_name);

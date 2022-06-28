@@ -426,15 +426,17 @@ static reg_t1 *get_search_parameters()
     reg->model = NULL;
 
     int n;
-    scanf("%d", &n);
+    scanf(" %d", &n);
     getchar(); // Consome o '\n'
 
     for (int i = 0; i < n; i++)
     {
         char *field_name = read_word(stdin);
         char *field_content = NULL;
+        printf("field_name = %s\n", field_name);
 
         char c = getchar();
+        printf("c = %c\n", c);
         if (c == '"')
         {
             field_content = read_until(stdin, '"');
@@ -449,7 +451,7 @@ static reg_t1 *get_search_parameters()
         {
             ungetc(c, stdin);
             int value;
-            scanf("%d", &value);
+            scanf(" %d ", &value);
 
             if      (strcmp(field_name, "id")  == 0) reg->id   = value;
             else if (strcmp(field_name, "ano") == 0) reg->year = value;
@@ -570,7 +572,7 @@ void search_by_rrn_type1(FILE *fp, int rrn)
     }
 
     fseek(fp, offset, SEEK_SET);
-    reg_t1 *reg = read_register_from_bin(fp);
+    reg_t1 *reg = read_register_from_bin(stdin);
     print_register_info(reg);
 
     free_register(reg);
@@ -591,6 +593,28 @@ void insertionSort_t1 (index_t1 *index, int size)
 	}
 }
 
+int binarySearch_t1 (index_t1 *index, int beg, int end, int value)
+{
+    int mid;
+    if(end >= beg)
+    {
+        mid = (beg + end) / 2;
+        if(index[mid].id == value)
+        {
+            return mid;
+        }
+        else if(index[mid].id < value)
+        {
+            return binarySearch_t1(index, mid + 1, end, value);
+        }
+        else
+        {
+            return binarySearch_t1(index, beg, mid - 1, value);
+        }
+    }
+    return -1;
+}
+
 void type1_index_ram_to_disk (index_t1 *index, int size, FILE *fp)
 {
     fseek(fp, 0, SEEK_SET);
@@ -601,6 +625,28 @@ void type1_index_ram_to_disk (index_t1 *index, int size, FILE *fp)
         fwrite(&index[i].id,  sizeof(int), 1, fp);
         fwrite(&index[i].rrn, sizeof(int), 1, fp);
     }
+}
+
+index_t1 *type1_index_disk_to_ram (int *size, FILE *fp)
+{
+    index_t1 *index = NULL;
+    fseek(fp, 0, SEEK_SET);
+    char c = fgetc(fp);
+
+    if (c == '1')
+    {
+        *size = 0;
+        int id;
+        while (fread(&id, sizeof(int), 1, fp) == 1)
+        {
+            *size = *size + 1;
+
+            index = realloc(index, *size * sizeof(index_t1));
+            index[*size - 1].id = id;
+            fread(&index[*size - 1].rrn, sizeof(int), 1, fp);
+        }
+    }
+    return index;
 }
 
 FILE *new_type1_index(FILE *data_fp, char *file_name)
@@ -643,4 +689,210 @@ FILE *new_type1_index(FILE *data_fp, char *file_name)
     fwrite("1", sizeof(char), 1, index_fp);
 
     return index_fp;
+}
+
+void type1_update_nroRegRem(FILE *fp, int qnt)
+{
+    int temp;
+    // Lê o nroRegRem do cabeçalho
+    fseek(fp, 178, SEEK_SET);
+    fread(&temp, sizeof(int), 1, fp);
+    // Atualiza nroRegRem
+    qnt = qnt + temp;
+    fseek(fp, 178, SEEK_SET);
+    fwrite(&qnt, sizeof(int), 1, fp);
+}
+
+void type1_update_header(FILE *fp, int qnt, int *topo)
+{
+    type1_update_nroRegRem(fp, qnt);
+    fseek(fp, 1, SEEK_SET);
+    fwrite(topo, sizeof(int), 1, fp);
+}
+
+void type1_update_stack(FILE *fp, int *topo, int rrn)
+{
+    fseek(fp, HEADER_SIZE + (rrn * 97) + 1, SEEK_SET);
+    fwrite(topo, sizeof(int), 1, fp);
+    *topo = rrn;
+}
+
+static int verify_reg_t2(reg_t1 *reg, reg_t1 *search_parameters)
+{
+    if (search_parameters->id != -1 &&
+        search_parameters->id != reg->id)
+        return 0;
+
+    if (search_parameters->year != -1 &&
+        search_parameters->year != reg->year)
+        return 0;
+
+    if (search_parameters->qtt != -1 &&
+        search_parameters->qtt != reg->qtt)
+        return 0;
+
+    if ((search_parameters->state != NULL) &&
+        (reg->state == NULL || strcmp(search_parameters->state, reg->state) != 0))
+        return 0;
+
+    if ((search_parameters->city != NULL) &&
+        (reg->city == NULL || strcmp(search_parameters->city, reg->city) != 0))
+        return 0;
+
+    if ((search_parameters->brand != NULL) &&
+        (reg->brand == NULL || strcmp(search_parameters->brand, reg->brand) != 0))
+        return 0;
+
+    if ((search_parameters->model != NULL) &&
+        (reg->model == NULL || strcmp(search_parameters->model, reg->model) != 0))
+        return 0;
+
+    return 1;
+}
+
+int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *search_param, int *size)
+{
+    printf("type1_search_id\n");
+    int *rrns = NULL;
+    *size = 0;
+    int position = binarySearch_t1(index, 0, index_size, search_param->id);
+
+    if (position != -1)
+    {
+        int rrn = index[position].rrn;
+        printf("id = %d, rrn = %d\n", index[position].id, rrn);
+        fseek(data_fp, HEADER_SIZE + (rrn * 97), SEEK_SET);
+
+        reg_t1 *reg = read_register_from_bin(data_fp);
+        print_register_info(reg);
+        printf("%c\n", reg->removed);
+        if (reg->removed == '0')
+        {
+            printf("a");
+            if(verify_reg_t2(reg, search_param) == 1)
+            {
+                *size = 1;
+                printf("achei!\n");
+                rrns = malloc(sizeof(int));
+                rrns[0] = rrn;
+            }
+        }
+        free_register(reg);
+    }
+
+    return rrns;
+}
+
+int *mod_search_by_parameters_type1(FILE *fp, reg_t1 *search_parameters, int *rrns_size)
+{
+    printf("mod_search_by_parameters_type1\n");
+    int *rrns = NULL;
+    *rrns_size = 0;
+    char status;
+    fread(&status, sizeof(char), 1, fp);
+    fseek(fp, 0, SEEK_SET);
+
+    if (status == '0')
+    {
+        printf("Falha no processamento do arquivo.\n");
+        return NULL;
+    }
+
+    fseek(fp, 0, SEEK_END);
+    long int file_size = ftell(fp);
+
+    for (long int offset = HEADER_SIZE; offset < file_size; offset += 97)
+    {
+        fseek(fp, offset, SEEK_SET);
+        reg_t1 *reg = read_register_from_bin(fp);
+        if (verify_reg_t2(reg, search_parameters) == 1)
+        {
+            *rrns_size = *rrns_size + 1;
+            rrns = realloc(rrns, *rrns_size * sizeof(int));
+            rrns[*rrns_size - 1] = (offset - HEADER_SIZE) / 97;
+        }
+        free_register(reg);
+    }
+    return rrns;
+}
+
+void type1_delete (FILE *fp, index_t1 *ind, int *size_ind, int *rrns, int size_rrn, int *topo, int *qnt)
+{
+    for (int i = 0; i < size_rrn; i++)
+    {
+        printf("Removendo RRN = %d\n", rrns[i]);
+        fseek(fp, HEADER_SIZE + (rrns[i] * 97), SEEK_SET);
+        fwrite("1", sizeof(char), 1, fp);
+
+        int id;
+        fseek(fp, 4, SEEK_CUR);
+        fread(&id, sizeof(int), 1, fp);
+        if (id != -1)
+        {
+            int pos = binarySearch_t1(ind, 0, *size_ind, id);
+            if (pos != -1)
+            {
+                for (int j = pos; j < *size_ind - 1; j++)
+                {
+                    ind[j] = ind[j + 1];
+                }
+                *size_ind = *size_ind - 1;
+                *qnt = *qnt + 1;
+            }
+        }
+        type1_update_stack(fp, topo, rrns[i]);
+    }
+}
+
+int type1_get_topo (FILE *fp)
+{
+    int topo;
+    fseek(fp, 1, SEEK_SET);
+    fread(&topo, sizeof(int), 1, fp);
+    return topo;
+}
+
+void type1_delete_from (FILE *data_fp, char *index_name)
+{
+    int n, topo, size, id, rrns_size, qnt = 0;
+    int *rrns;
+    FILE *index_fp = fopen(index_name, "rb");
+    index_t1 *index = type1_index_disk_to_ram (&size, index_fp);
+    topo = type1_get_topo(data_fp);
+    printf("topo = %d\n", topo);
+
+    scanf(" %d", &n);
+    printf("%d\n", n);
+    for (int i = 0; i < n; i++) {
+        rrns = NULL;
+        rrns_size = 0;
+
+        reg_t1 *search_parameters = get_search_parameters();
+
+        if(search_parameters->id != -1)
+        {
+            rrns = type1_search_id (data_fp, index, size, search_parameters, &rrns_size);
+        }
+        else
+        {
+            rrns = mod_search_by_parameters_type1(data_fp, search_parameters, &rrns_size);
+        }
+        type1_delete(data_fp, index, &size, rrns, rrns_size, &topo, &qnt);
+
+        if (rrns != NULL) free(rrns);
+
+        free_register(search_parameters);
+    }
+    fclose(index_fp);
+
+    index_fp = fopen(index_name, "wb");
+    insertionSort_t1(index, size);
+    type1_index_ram_to_disk(index, size, index_fp);
+    fseek(index_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, index_fp);
+    fclose(index_fp);
+
+    type1_update_header(data_fp, qnt, &topo);
+    fseek(data_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, data_fp);
 }

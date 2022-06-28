@@ -109,13 +109,13 @@ int main()
         break;
 
         case 6:
+            index_file = read_word(stdin);
             if (file_type[4] == '1')
             {
-
+                type1_delete_from (input_fp, index_file);
             }
             else if (file_type[4] == '2')
             {
-                index_file = read_word(stdin);
                 FILE *index_fp = fopen(index_file, "r+b");
 
                 funct6(input_fp, index_fp, index_file);
@@ -125,7 +125,8 @@ int main()
         case 7:
             if (file_type[4] == '1')
             {
-
+                index_file = read_word(stdin);
+                type1_delete_from(input_fp, index_file);
             }
             else if (file_type[4] == '2')
             {
