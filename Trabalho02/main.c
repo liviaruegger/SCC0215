@@ -92,13 +92,17 @@ int main()
 
             if (file_type[4] == '1')
             {
+                output_fp = new_type1_index(input_fp, output_file);
+                fclose(output_fp);
 
+                binarioNaTela(output_file);
+                free(output_file);
             }
             else if (file_type[4] == '2')
             {
                 output_fp = new_t2_index_file(input_fp, output_file);
                 fclose(output_fp);
-                
+
                 binarioNaTela(output_file);
                 free(output_file);
             }

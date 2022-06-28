@@ -4,12 +4,12 @@
  * @author André Kenji Hidaka Matsumoto (N. USP 12542689)
  * @brief  SCC0215 - Organização de Arquivos
  *         Trabalho 01
- *         
+ *
  *         Módulo que trabalha com arquivos Tipo 1 (Arquivo de Dados para
  *         Registros de Tamanho Fixo)
- *         
+ *
  * @date   2022-05-26
- * 
+ *
  */
 
 #include <stdio.h>
@@ -31,7 +31,7 @@ typedef struct register_type1
 
     int  city_namesize;
     char *city;
-    
+
     int  brand_namesize;
     char *brand;
 
@@ -39,10 +39,16 @@ typedef struct register_type1
     char *model;
 }   reg_t1;
 
+typedef struct register_type1_index
+{
+    int id;
+    int rrn;
+}   index_t1;
+
 /**
  * @brief Cria um arquivo binário de dados do Tipo 1 e insere os dados de
  * cabeçalho.
- * 
+ *
  * @param file_name nome para o arquivo binário que será criado;
  * @return ponteiro para o arquivo criado (FILE *).
  */
@@ -56,7 +62,7 @@ FILE *new_type1_file(char *file_name)
     fwrite(&default_value, sizeof(int),  1, fp); // 1
 
     fwrite("LISTAGEM DA FROTA DOS VEICULOS NO BRASIL", sizeof(char), 40, fp); // 5
-    
+
     default_value = 0;
 
     fwrite("CODIGO IDENTIFICADOR: ",   sizeof(char), 22, fp); // 45
@@ -78,7 +84,7 @@ FILE *new_type1_file(char *file_name)
 /**
  * @brief Lê de um arquivo .csv os dados de um registro e insere em uma struct
  * register_type1.
- * 
+ *
  * @param fp ponteiro para o arquivo .csv;
  * @return ponteiro para a struct do registro lido (reg_t1 *).
  */
@@ -93,7 +99,7 @@ static reg_t1 *read_register_from_csv(FILE *fp)
     char *id = read_until(fp, ',');
     reg->id = atoi(id);
     free(id);
-    
+
     char *year = read_until(fp, ',');
     if (year[0] >= '0' && year[0] <= '9') reg->year = atoi(year);
     else reg->year = -1;
@@ -164,11 +170,11 @@ static reg_t1 *read_register_from_csv(FILE *fp)
 
 /**
  * @brief Desaloca a memória utilizada por um registro (struct register_type1).
- * 
+ *
  * @param reg ponteiro para a struct que deve ser desalocada.
  */
 static void free_register(reg_t1 *reg)
-{   
+{
     if (reg)
     {
         if (reg->state) free(reg->state);
@@ -182,14 +188,14 @@ static void free_register(reg_t1 *reg)
 /**
  * @brief Chama a função que lê um registro de um arquivo .csv e escreve esse
  * registro em um arquivo binário de dados (criado previamente).
- * 
- * @param input arquivo .csv de entrada; 
+ *
+ * @param input arquivo .csv de entrada;
  * @param output arquivo .bin de saída.
  */
 static void read_and_write_register(FILE *input, FILE *output)
 {
     reg_t1 *reg = read_register_from_csv(input);
-    
+
     // Campos de tamanho fixo
     fwrite(&reg->removed, sizeof(char), 1, output);
     fwrite(&reg->next,    sizeof(int),  1, output);
@@ -237,12 +243,12 @@ static void read_and_write_register(FILE *input, FILE *output)
 /**
  * @brief Lê e escreve em um arquivo de dados .bin todos os registros contidos
  * em um arquivo .csv, um registro por vez.
- * 
- * @param input arquivo .csv de entrada; 
+ *
+ * @param input arquivo .csv de entrada;
  * @param output arquivo .bin de saída.
  */
 void read_and_write_all_type1(FILE *input, FILE *output)
-{   
+{
     char *input_header = read_until(input, '\n');
     int register_count = 0;
 
@@ -268,7 +274,7 @@ void read_and_write_all_type1(FILE *input, FILE *output)
 /**
  * @brief Lê de um arquivo binário os dados de um registro e insere em uma
  * struct register_type1.
- * 
+ *
  * @param fp ponteiro para o arquivo binário de dados;
  * @return ponteiro para a struct do registro lido (reg_t1 *).
  */
@@ -301,7 +307,7 @@ static reg_t1 *read_register_from_bin(FILE *fp)
     fseek(fp, 4, SEEK_CUR);
     fread(&c, sizeof(char), 1, fp);
     fseek(fp, -5, SEEK_CUR);
-    
+
     if (c == '0')
     {
         fread(&reg->city_namesize, sizeof(int),  1, fp);
@@ -337,7 +343,7 @@ static reg_t1 *read_register_from_bin(FILE *fp)
         reg->model = malloc(sizeof(char) * (reg->model_namesize + 1));
         fread(reg->model, sizeof(char), reg->model_namesize, fp);
         reg->model[reg->model_namesize] = '\0';
-    }    
+    }
 
     return reg;
 }
@@ -345,8 +351,8 @@ static reg_t1 *read_register_from_bin(FILE *fp)
 /**
  * @brief Imprime de forma organizada, na saída padrão, os dados contidos em
  * uma struct register_type1.
- * 
- * @param reg ponteiro para a struct do registro que deve ser impresso. 
+ *
+ * @param reg ponteiro para a struct do registro que deve ser impresso.
  */
 static void print_register_info(reg_t1 *reg)
 {
@@ -358,7 +364,7 @@ static void print_register_info(reg_t1 *reg)
 
     if (reg->brand) printf("MARCA DO VEICULO: %s\n", reg->brand);
     else printf("MARCA DO VEICULO: NAO PREENCHIDO\n");
-    
+
     if (reg->model) printf("MODELO DO VEICULO: %s\n", reg->model);
     else printf("MODELO DO VEICULO: NAO PREENCHIDO\n");
 
@@ -375,8 +381,8 @@ static void print_register_info(reg_t1 *reg)
 /**
  * @brief Imprime os dados de todos os registros contidos em um arquivo de
  * dados binário do Tipo 1.
- * 
- * @param fp ponteiro para o arquivo binário de dados. 
+ *
+ * @param fp ponteiro para o arquivo binário de dados.
  */
 void print_all_from_bin_type1(FILE *fp)
 {
@@ -403,9 +409,9 @@ void print_all_from_bin_type1(FILE *fp)
 
 /**
  * @brief Lê da entrada padrão os parâmetros para busca de um registro.
- * 
+ *
  * @return struct register_type1 contendo os paramêtros para busca (reg_t1 *);
- * os campos que não devem ser considerados são marcados com -1 ou NULL. 
+ * os campos que não devem ser considerados são marcados com -1 ou NULL.
  */
 static reg_t1 *get_search_parameters()
 {
@@ -452,7 +458,7 @@ static reg_t1 *get_search_parameters()
 
         free(field_name);
     }
-    
+
     return reg;
 }
 
@@ -461,11 +467,11 @@ static reg_t1 *get_search_parameters()
  * deles um registro previamente lido de um arquivo de dados e o outro um
  * registro contendo parâmetros para busca. Caso as condições de busca sejam
  * satisfeitas, o registro completo será impresso na saída padrão.
- * 
+ *
  * @param reg ponteiro para uma struct reg_t1 contendo os dados de um registro
  * buscado, que foi lido previamente de um arquivo de dados;
  * @param search_parameters ponteiro para a struct contendo os parâmetros de
- * busca. 
+ * busca.
  */
 static void compare_and_print_if_matched(reg_t1 *reg, reg_t1 *search_parameters)
 {
@@ -480,11 +486,11 @@ static void compare_and_print_if_matched(reg_t1 *reg, reg_t1 *search_parameters)
     if (search_parameters->qtt != -1 &&
         search_parameters->qtt != reg->qtt)
         return;
-    
-    if ((search_parameters->state != NULL) && 
+
+    if ((search_parameters->state != NULL) &&
         (reg->state == NULL || strcmp(search_parameters->state, reg->state) != 0))
         return;
-    
+
     if ((search_parameters->city != NULL) &&
         (reg->city == NULL || strcmp(search_parameters->city, reg->city) != 0))
         return;
@@ -492,7 +498,7 @@ static void compare_and_print_if_matched(reg_t1 *reg, reg_t1 *search_parameters)
     if ((search_parameters->brand != NULL) &&
         (reg->brand == NULL || strcmp(search_parameters->brand, reg->brand) != 0))
         return;
-    
+
     if ((search_parameters->model != NULL) &&
         (reg->model == NULL || strcmp(search_parameters->model, reg->model) != 0))
         return;
@@ -503,7 +509,7 @@ static void compare_and_print_if_matched(reg_t1 *reg, reg_t1 *search_parameters)
 /**
  * @brief Lê da entrada padrão n parâmetros para busca de registros e executa
  * essa busca linearmente em um arquivo binário de dados.
- * 
+ *
  * @param fp ponteiro para o arquivo de dados no qual será feita a busca.
  */
 void search_by_parameters_type1(FILE *fp)
@@ -537,7 +543,7 @@ void search_by_parameters_type1(FILE *fp)
 /**
  * @brief A partir de um RNN, busca um registro epecífico em um arquivo binário
  * e imprime seus dados na saída padrão (ou informa que ele não existe).
- * 
+ *
  * @param fp ponteiro para o arquivo de dados no qual será feita a busca;
  * @param rrn número relativo do registro.
  */
@@ -551,7 +557,7 @@ void search_by_rrn_type1(FILE *fp, int rrn)
         printf("Falha no processamento do arquivo.\n");
         return;
     }
-    
+
     long int offset = HEADER_SIZE + (rrn * 97);
 
     fseek(fp, 0, SEEK_END);
@@ -568,4 +574,73 @@ void search_by_rrn_type1(FILE *fp, int rrn)
     print_register_info(reg);
 
     free_register(reg);
+}
+
+void insertionSort_t1 (index_t1 *index, int size)
+{
+	int j;
+	for(j = 1; j < size; j++)
+    {
+		int chave = index[j].id;
+		int i = j - 1;
+		while (i >= 0 && index[i].id > chave){
+            index[i + 1] = index[i];
+			i--;
+		}
+		index[i + 1] = index[j];
+	}
+}
+
+void type1_index_ram_to_disk (index_t1 *index, int size, FILE *fp)
+{
+    fseek(fp, 0, SEEK_SET);
+    fwrite("0", sizeof(char), 1, fp);
+
+    for (int i = 0; i < size; i++)
+    {
+        fwrite(&index[i].id,  sizeof(int), 1, fp);
+        fwrite(&index[i].rrn, sizeof(int), 1, fp);
+    }
+}
+
+FILE *new_type1_index(FILE *data_fp, char *file_name)
+{
+    FILE *index_fp = fopen(file_name, "wb");
+
+    index_t1 *index = NULL;
+    int size = 0;
+    long int offset;
+
+    fseek(data_fp, 182, SEEK_SET);
+    offset = ftell(data_fp);
+    char c = fgetc(data_fp);
+    while (c != EOF) {
+        if (c == '0')
+        {
+            size++;
+            index = realloc(index, size * sizeof(index_t1));
+
+            fseek(data_fp, 4, SEEK_CUR);
+            fread(&index[size - 1].id, sizeof(int), 1, data_fp);
+            index[size - 1].rrn = (offset - HEADER_SIZE) / 97;
+            fseek(data_fp, 88, SEEK_CUR);
+        }
+        else
+        {
+            fseek(data_fp, 96, SEEK_CUR);
+        }
+        offset = ftell(data_fp);
+        c = fgetc(data_fp);
+    }
+
+    insertionSort_t1(index, size);
+
+    type1_index_ram_to_disk(index, size, index_fp);
+
+    free(index);
+
+    fseek(index_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, index_fp);
+
+    return index_fp;
 }
