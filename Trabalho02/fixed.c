@@ -433,15 +433,8 @@ static reg_t1 *get_search_parameters()
     {
         char *field_name = read_word(stdin);
         char *field_content = NULL;
-<<<<<<< HEAD
-        printf("field_name = %s\n", field_name);
-
         char c = getchar();
-        printf("c = %c\n", c);
-=======
 
-        char c = getchar();
->>>>>>> a19d1cf7d27d03b0b857c3f9d400db5e19c1769b
         if (c == '"')
         {
             field_content = read_until(stdin, '"');
@@ -757,10 +750,6 @@ static int verify_reg_t2(reg_t1 *reg, reg_t1 *search_parameters)
 
 int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *search_param, int *size)
 {
-<<<<<<< HEAD
-    printf("type1_search_id\n");
-=======
->>>>>>> a19d1cf7d27d03b0b857c3f9d400db5e19c1769b
     int *rrns = NULL;
     *size = 0;
     int position = binarySearch_t1(index, 0, index_size, search_param->id);
@@ -768,21 +757,6 @@ int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *se
     if (position != -1)
     {
         int rrn = index[position].rrn;
-<<<<<<< HEAD
-        printf("id = %d, rrn = %d\n", index[position].id, rrn);
-        fseek(data_fp, HEADER_SIZE + (rrn * 97), SEEK_SET);
-
-        reg_t1 *reg = read_register_from_bin(data_fp);
-        print_register_info(reg);
-        printf("%c\n", reg->removed);
-        if (reg->removed == '0')
-        {
-            printf("a");
-            if(verify_reg_t2(reg, search_param) == 1)
-            {
-                *size = 1;
-                printf("achei!\n");
-=======
         fseek(data_fp, HEADER_SIZE + (rrn * 97), SEEK_SET);
 
         reg_t1 *reg = read_register_from_bin(data_fp);
@@ -791,7 +765,6 @@ int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *se
             if(verify_reg_t2(reg, search_param) == 1)
             {
                 *size = 1;
->>>>>>> a19d1cf7d27d03b0b857c3f9d400db5e19c1769b
                 rrns = malloc(sizeof(int));
                 rrns[0] = rrn;
             }
@@ -804,10 +777,6 @@ int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *se
 
 int *mod_search_by_parameters_type1(FILE *fp, reg_t1 *search_parameters, int *rrns_size)
 {
-<<<<<<< HEAD
-    printf("mod_search_by_parameters_type1\n");
-=======
->>>>>>> a19d1cf7d27d03b0b857c3f9d400db5e19c1769b
     int *rrns = NULL;
     *rrns_size = 0;
     char status;
@@ -816,10 +785,6 @@ int *mod_search_by_parameters_type1(FILE *fp, reg_t1 *search_parameters, int *rr
 
     if (status == '0')
     {
-<<<<<<< HEAD
-        printf("Falha no processamento do arquivo.\n");
-=======
->>>>>>> a19d1cf7d27d03b0b857c3f9d400db5e19c1769b
         return NULL;
     }
 
@@ -845,10 +810,6 @@ void type1_delete (FILE *fp, index_t1 *ind, int *size_ind, int *rrns, int size_r
 {
     for (int i = 0; i < size_rrn; i++)
     {
-<<<<<<< HEAD
-        printf("Removendo RRN = %d\n", rrns[i]);
-=======
->>>>>>> a19d1cf7d27d03b0b857c3f9d400db5e19c1769b
         fseek(fp, HEADER_SIZE + (rrns[i] * 97), SEEK_SET);
         fwrite("1", sizeof(char), 1, fp);
 
@@ -887,15 +848,9 @@ void type1_delete_from (FILE *data_fp, char *index_name)
     FILE *index_fp = fopen(index_name, "rb");
     index_t1 *index = type1_index_disk_to_ram (&size, index_fp);
     topo = type1_get_topo(data_fp);
-<<<<<<< HEAD
-    printf("topo = %d\n", topo);
 
     scanf(" %d", &n);
-    printf("%d\n", n);
-=======
 
-    scanf(" %d", &n);
->>>>>>> a19d1cf7d27d03b0b857c3f9d400db5e19c1769b
     for (int i = 0; i < n; i++) {
         rrns = NULL;
         rrns_size = 0;
@@ -924,10 +879,7 @@ void type1_delete_from (FILE *data_fp, char *index_name)
     fseek(index_fp, 0, SEEK_SET);
     fwrite("1", sizeof(char), 1, index_fp);
     fclose(index_fp);
-<<<<<<< HEAD
-=======
     free(index);
->>>>>>> a19d1cf7d27d03b0b857c3f9d400db5e19c1769b
 
     type1_update_header(data_fp, qnt, &topo);
     fseek(data_fp, 0, SEEK_SET);
