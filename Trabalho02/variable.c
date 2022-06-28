@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "utils.h"
+#include "lista.h"
 
 typedef struct register_type2
 {
@@ -57,6 +58,12 @@ typedef struct register_type2_index
     int id;
     long int offset;
 } t2_index;
+
+typedef struct t2_list_elem
+{
+    int size;
+    long int offset;
+} t2_elem;
 
 /**
  * @brief Cria um arquivo binário de dados do Tipo 2 e insere os dados de
@@ -963,52 +970,28 @@ long int get_list_start(FILE *data_fp)
  * @param long int new_offset novo offset a ser inserido
  * @param int new_size tamanho do registro que foi removido
  */
-void update_list_start(FILE *data_fp, long int new_offset, int new_size)
+Lista_t *create_t2_list(FILE *data_fp)
 {
-    long int aux, ant = -1, prox, topo;
+    Lista_t *list = criar();
+    long int aux, prox;
     int aux_size;
 
     fseek(data_fp, 1, SEEK_SET); // vai para o campo 'topo'
     fread(&aux, sizeof(long int), 1, data_fp);
-    topo = aux;
 
-    if(aux != -1)
+    while (aux != -1)
     {
         fseek(data_fp, aux + 1, SEEK_SET);
         fread(&aux_size, sizeof(int), 1, data_fp);
         fread(&prox, sizeof(long int), 1, data_fp);
-    }
 
-    while(aux != -1 && new_size < aux_size)
-    {
-        ant = aux;
+        inserir(list, aux_size, aux);
+
         aux = prox;
-
-        if(aux != -1)
-        {
-            fseek(data_fp, aux + 1, SEEK_SET);
-            fread(&aux_size, sizeof(int), 1, data_fp);
-            fread(&prox, sizeof(long int), 1, data_fp);
-        }
     }
 
-    // Lista vazia / Inserir no começo
-    if (ant == -1)
-    {
-        fseek(data_fp, new_offset + 5, SEEK_SET);
-        fwrite(&topo, sizeof(long int), 1, data_fp);
-        fseek(data_fp, 1, SEEK_SET);
-        fwrite(&new_offset, sizeof(long int), 1, data_fp);
-    }
-    else
-    {
-        fseek(data_fp, new_offset + 5, SEEK_SET);
-        fwrite(&aux, sizeof(long int), 1, data_fp);
-        fseek(data_fp, ant + 5, SEEK_SET);
-        fwrite(&new_offset, sizeof(long int), 1, data_fp);
-    }
+    return list;
 }
-
 
 /**
  * @brief Marca um registro como removido
@@ -1016,7 +999,7 @@ void update_list_start(FILE *data_fp, long int new_offset, int new_size)
  * @param FILE *data_fp ponteiro para o arquivo de dados
  * @param long int offset offset do arquivo a ser removido
  */
-void type2_mark_removed(FILE *data_fp, long int offset)
+void type2_mark_removed(FILE *data_fp, long int offset, Lista_t *list)
 {
     int size;
 
@@ -1027,8 +1010,7 @@ void type2_mark_removed(FILE *data_fp, long int offset)
     fwrite("1", sizeof(char), 1, data_fp);
     fread(&size, sizeof(int), 1, data_fp);
 
-    update_list_start(data_fp, offset, size);
-
+    inserir(list, size, offset);
 }
 
 
@@ -1043,7 +1025,7 @@ void type2_mark_removed(FILE *data_fp, long int offset)
  * @param t2_index **index ponteiro para o vetor de indices em RAM
  * @param int *qnt quantidade de registros removidos
  */
-void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **index, int *qnt)
+void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **index, int *qnt, Lista_t *list)
 {
     s_reg_t2 *reg_search = get_reg_t2_search_parameters();
     int position;
@@ -1065,7 +1047,7 @@ void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **i
                 if(verify_reg_t2(reg, reg_search) != 0)
                 {
                     //printf("passou\n\n");
-                    type2_mark_removed(data_fp, index[position]->offset);
+                    type2_mark_removed(data_fp, index[position]->offset, list);
                     free(index[position]);
                     for(int j = position; j < *index_size - 1; j++)
                     {
@@ -1086,7 +1068,7 @@ void type2_deletion(FILE *data_fp, FILE *index_fp, int *index_size, t2_index **i
         for(int i = 0; i < f3_array_size; i++)
         {
             int id;
-            type2_mark_removed(data_fp, array[i]);
+            type2_mark_removed(data_fp, array[i], list);
             fseek(data_fp, array[i] + 13, SEEK_SET);
             fread(&id, sizeof(int), 1, data_fp);
             if(id != -1)
@@ -1200,13 +1182,14 @@ void t2_update_nroRegRem(FILE *data_fp, int qnt)
 void funct6(FILE *input_fp, FILE *index_fp, char *index_file)
 {
     int n, index_size, qnt = 0;
+    Lista_t *list = create_t2_list(input_fp);
     scanf(" %d", &n);
 
     t2_index **index = t2_index_disk_to_ram (&index_size, index_fp);
 
     for(int i = 0; i < n; i++)
     {
-        type2_deletion(input_fp, index_fp, &index_size, index, &qnt);
+        type2_deletion(input_fp, index_fp, &index_size, index, &qnt, list);
     }
     fclose(index_fp);
 
@@ -1216,9 +1199,11 @@ void funct6(FILE *input_fp, FILE *index_fp, char *index_file)
     fclose(index_fp);
 
     t2_update_nroRegRem(input_fp, qnt);
+    update_topo(list, input_fp);
     update_header_status(input_fp);
 
     free_type2_index(index, index_size);
+    desalocar(list);
 }
 
 /**
