@@ -92,26 +92,30 @@ int main()
 
             if (file_type[4] == '1')
             {
+                output_fp = new_type1_index(input_fp, output_file);
+                fclose(output_fp);
 
+                binarioNaTela(output_file);
+                free(output_file);
             }
             else if (file_type[4] == '2')
             {
                 output_fp = new_t2_index_file(input_fp, output_file);
                 fclose(output_fp);
-                
+
                 binarioNaTela(output_file);
                 free(output_file);
             }
         break;
 
         case 6:
+            index_file = read_word(stdin);
             if (file_type[4] == '1')
             {
-
+                type1_delete_from (input_fp, index_file);
             }
             else if (file_type[4] == '2')
             {
-                index_file = read_word(stdin);
                 FILE *index_fp = fopen(index_file, "r+b");
 
                 funct6(input_fp, index_fp, index_file);
@@ -121,7 +125,8 @@ int main()
         case 7:
             if (file_type[4] == '1')
             {
-
+                index_file = read_word(stdin);
+                type1_delete_from(input_fp, index_file);
             }
             else if (file_type[4] == '2')
             {
