@@ -1160,17 +1160,6 @@ void fila(FILE *fp)
 }
 
 /**
- * @brief Atualiza o campo 'status' no cabeçalho para indicar término de escrita
- *
- * @param FILE *fp ponteiro para o arquivo
- */
-void update_header_status(FILE *fp)
-{
-    fseek(fp, 0, SEEK_SET);
-    fwrite("1", sizeof(char), 1, fp);
-}
-
-/**
  * @brief Atualiza o campo 'nroRegRem' no cabeçalho do arquivo de dados
  *
  * @param FILE *input_fp ponteiro para o arquivo de dados

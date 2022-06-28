@@ -576,6 +576,12 @@ void search_by_rrn_type1(FILE *fp, int rrn)
     free_register(reg);
 }
 
+/**
+ * @brief Ordena o vetor de índices.
+ *
+ * @param index ponteiro para o vetor de índices.
+ * @param size tamanho do vetor de índices.
+ */
 void insertionSort_t1 (index_t1 *index, int size)
 {
 	int j;
@@ -591,6 +597,15 @@ void insertionSort_t1 (index_t1 *index, int size)
 	}
 }
 
+/**
+ * @brief Faz uma busca binária de um id no vetor de índices.
+ *
+ * @param beg extremo esquerdo do vetor.
+ * @param end extremo direito do vetor.
+ * @param value id a ser buscado.
+ *
+ * @return posição do elemento ou -1, caso não seja encontrado.
+ */
 int binarySearch_t1 (index_t1 *index, int beg, int end, int value)
 {
     int mid;
@@ -613,8 +628,17 @@ int binarySearch_t1 (index_t1 *index, int beg, int end, int value)
     return -1;
 }
 
+/**
+ * @brief Escreve o vetor de índices em um arquivo de índices binário.
+ *
+ * @param index ponteiro para o vetor de índices.
+ * @param size tamanho do vetor de índices.
+ * @param fp ponteiro para o arquivo binário.
+ */
 void type1_index_ram_to_disk (index_t1 *index, int size, FILE *fp)
 {
+    insertionSort_t1(index, size);
+
     fseek(fp, 0, SEEK_SET);
     fwrite("0", sizeof(char), 1, fp);
 
@@ -625,6 +649,13 @@ void type1_index_ram_to_disk (index_t1 *index, int size, FILE *fp)
     }
 }
 
+/**
+ * @brief Lê um arquivo de índices binário e armazena as informaçõe em um vetor
+ * de índices.
+ *
+ * @param size tamanho do vetor de índices.
+ * @param fp ponteiro para o arquivo de dados binário.
+ */
 index_t1 *type1_index_disk_to_ram (int *size, FILE *fp)
 {
     index_t1 *index = NULL;
@@ -647,6 +678,13 @@ index_t1 *type1_index_disk_to_ram (int *size, FILE *fp)
     return index;
 }
 
+/**
+ * @brief Lê um arquivo de dados binário e, com base nele, cria um arquivo
+ * de índices.
+ *
+ * @param data_fp ponteiro para o arquivo de dados.
+ * @param file_name nome do arquivo de índices que será criado.
+ */
 FILE *new_type1_index(FILE *data_fp, char *file_name)
 {
     FILE *index_fp = fopen(file_name, "wb");
@@ -676,9 +714,6 @@ FILE *new_type1_index(FILE *data_fp, char *file_name)
         offset = ftell(data_fp);
         c = fgetc(data_fp);
     }
-
-    insertionSort_t1(index, size);
-
     type1_index_ram_to_disk(index, size, index_fp);
 
     free(index);
@@ -689,18 +724,33 @@ FILE *new_type1_index(FILE *data_fp, char *file_name)
     return index_fp;
 }
 
+/**
+ * @brief Atualiza o campo 'nroRegRem' no cabeçalho.
+ *
+ * @param fp ponteiro para o arquivo de dados binário.
+ * @param qnt quantidade de novos registros removidos.
+ */
 void type1_update_nroRegRem(FILE *fp, int qnt)
 {
     int temp;
+
     // Lê o nroRegRem do cabeçalho
     fseek(fp, 178, SEEK_SET);
     fread(&temp, sizeof(int), 1, fp);
+
     // Atualiza nroRegRem
     qnt = qnt + temp;
     fseek(fp, 178, SEEK_SET);
     fwrite(&qnt, sizeof(int), 1, fp);
 }
 
+/**
+ * @brief Atualiza o cabeçalho do registro de dados binário.
+ *
+ * @param fp ponteiro para o arquivo de dados binário.
+ * @param qnt quantidade de novos registros removidos.
+ * @param topo RRN que será armazenado no campo 'topo'.
+ */
 void type1_update_header(FILE *fp, int qnt, int *topo)
 {
     type1_update_nroRegRem(fp, qnt);
@@ -708,6 +758,13 @@ void type1_update_header(FILE *fp, int qnt, int *topo)
     fwrite(topo, sizeof(int), 1, fp);
 }
 
+/**
+ * @brief Empilha um novo RRN na pilha do registro de dados.
+ *
+ * @param fp ponteiro para o arquivo de dados binário.
+ * @param topo RRN que está no topo.
+ * @param rrn novo rrn a ser empilhado.
+ */
 void type1_update_stack(FILE *fp, int *topo, int rrn)
 {
     fseek(fp, HEADER_SIZE + (rrn * 97) + 1, SEEK_SET);
@@ -715,6 +772,14 @@ void type1_update_stack(FILE *fp, int *topo, int rrn)
     *topo = rrn;
 }
 
+/**
+ * @brief Verifica se um registro cumpre os requisitos de busca de outro.
+ *
+ * @param reg registro que será verificado.
+ * @param search_parameters registro de parâmetros.
+ *
+ * @return retorna 0 caso o registro não cumpra os requisitos e 1, caso sim.
+ */
 static int verify_reg_t2(reg_t1 *reg, reg_t1 *search_parameters)
 {
     if (search_parameters->id != -1 &&
@@ -748,6 +813,19 @@ static int verify_reg_t2(reg_t1 *reg, reg_t1 *search_parameters)
     return 1;
 }
 
+/**
+ * @brief Utilizando um registro de parâmetros e um vetor de índices, procura o
+ * registro.
+ *
+ * @param data_fp ponteiro para o arquivo de dados.
+ * @param index ponteiro para o vetor de índices
+ * @param index_size tamanho do vetor de índices.
+ * @param search_parameters registro de parâmetros.
+ * @param size tamanho do vetor retornado.
+ *
+ * @return retorna um vetor unitário contendo o RRN do registro, caso ele seja
+ * encontrado e NULL, caso não seja.
+ */
 int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *search_param, int *size)
 {
     int *rrns = NULL;
@@ -775,6 +853,17 @@ int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *se
     return rrns;
 }
 
+/**
+ * @brief Utilizando um registro de parâmetros, procura o(s) registro(s) que sa-
+ * tisfazam os critérios de busca.
+ *
+ * @param fp ponteiro para o arquivo de dados.
+ * @param search_parameters registro de parâmetros.
+ * @param rrns_size tamanho do vetor retornado.
+ *
+ * @return retorna um vetor contendo o(s) RRN(s) do(s) registro(s) que cumprar
+ * os parâmetros e NULL, caso não seja encontrado nenhum registro.
+ */
 int *mod_search_by_parameters_type1(FILE *fp, reg_t1 *search_parameters, int *rrns_size)
 {
     int *rrns = NULL;
@@ -806,6 +895,17 @@ int *mod_search_by_parameters_type1(FILE *fp, reg_t1 *search_parameters, int *rr
     return rrns;
 }
 
+/**
+ * @brief Remove os registros com base em um vetor que armazena os RRNs deles.
+ *
+ * @param fp ponteiro para o arquivo de dados.
+ * @param ind ponteiro para o vetor de índices.
+ * @param size_ind tamanho do vetor de índices.
+ * @param rrns vetor de RRNs dos registros a serem removidos.
+ * @param size_rrn tamanho do vetor de RRNs.
+ * @param topo RRN do topo da pilha.
+ * @param qnt quantidade de novos registros removidos.
+ */
 void type1_delete (FILE *fp, index_t1 *ind, int *size_ind, int *rrns, int size_rrn, int *topo, int *qnt)
 {
     for (int i = 0; i < size_rrn; i++)
@@ -833,6 +933,13 @@ void type1_delete (FILE *fp, index_t1 *ind, int *size_ind, int *rrns, int size_r
     }
 }
 
+/**
+ * @brief Retorna o RRN no campo 'topo'.
+ *
+ * @param fp ponteiro para o arquivo de dados.
+ *
+ * @return RRN armazenado no campo 'topo'.
+ */
 int type1_get_topo (FILE *fp)
 {
     int topo;
@@ -841,6 +948,14 @@ int type1_get_topo (FILE *fp)
     return topo;
 }
 
+/**
+ * @brief Função que lê os parâmetros dos registros a serem removidos da entrada
+ * padrão(stdin) e remove eles, caso possível. Em seguida, atualiza o arquivo
+ * de dados e de índices.
+ *
+ * @param data_fp ponteiro para o arquivo de dados.
+ * @param index_name nome do arquivo binário.
+ */
 void type1_delete_from (FILE *data_fp, char *index_name)
 {
     int n, topo, size, id, rrns_size, qnt = 0;
@@ -874,14 +989,11 @@ void type1_delete_from (FILE *data_fp, char *index_name)
     fclose(index_fp);
 
     index_fp = fopen(index_name, "wb");
-    insertionSort_t1(index, size);
     type1_index_ram_to_disk(index, size, index_fp);
-    fseek(index_fp, 0, SEEK_SET);
-    fwrite("1", sizeof(char), 1, index_fp);
+    update_header_status(index_fp);
     fclose(index_fp);
     free(index);
 
     type1_update_header(data_fp, qnt, &topo);
-    fseek(data_fp, 0, SEEK_SET);
-    fwrite("1", sizeof(char), 1, data_fp);
+    update_header_status(data_fp);
 }

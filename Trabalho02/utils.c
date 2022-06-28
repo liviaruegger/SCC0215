@@ -4,11 +4,11 @@
  * @author André Kenji Hidaka Matsumoto (N. USP 12542689)
  * @brief  SCC0215 - Organização de Arquivos
  *         Trabalho 01
- *         
+ *
  *         Módulo contendo funções utilitárias
- *         
+ *
  * @date   2022-05-26
- * 
+ *
  */
 
 #include <stdio.h>
@@ -17,7 +17,7 @@
 /**
  * @brief Alocando memória dinamicamente, lê e armazena uma palavra do arquivo
  * de entrada até encontrar um espaço, uma quebra de linha ou EOF.
- * 
+ *
  * @param stream entrada (arquivo ou entrada padrão);
  * @return ponteiro para a string lida (char *).
  */
@@ -52,7 +52,7 @@ char *read_word(FILE *stream)
 /**
  * @brief Alocando memória dinamicamente, lê e armazena uma linha do arquivo de
  * entrada até encontrar uma quebra de linha ou EOF.
- * 
+ *
  * @param stream entrada (arquivo ou entrada padrão);
  * @return ponteiro para a string lida (char *).
  */
@@ -83,9 +83,9 @@ char *read_line(FILE *stream)
 }
 
 /**
- * @brief Alocando memória dinamicamente, lê e armazena uma linha do arquivo de 
+ * @brief Alocando memória dinamicamente, lê e armazena uma linha do arquivo de
  * entrada até encontrar o caractere que foi passado como parâmetro.
- * 
+ *
  * @param stream entrada (arquivo ou entrada padrão);
  * @param c caractere de parada;
  * @return ponteiro para a string lida (char *).
@@ -112,12 +112,12 @@ char *read_until(FILE *stream, char c)
 
 /**
  * @brief Função auxiliar fornecida pela professora/monitores.
- * 
- * @param nomeArquivoBinario 
+ *
+ * @param nomeArquivoBinario
  */
 void binarioNaTela(char *nomeArquivoBinario)
 {
-    /** 
+    /**
      * Use essa função para comparação no run.codes. Lembre-se de ter fechado
      * (fclose) o arquivo anteriormente. Ela vai abrir de novo para leitura e
      * depois fechar (você não vai perder pontos por isso se usar ela).
@@ -146,4 +146,15 @@ void binarioNaTela(char *nomeArquivoBinario)
 	printf("%lf\n", (cs / (double)100));
 	free(mb);
 	fclose(fs);
+}
+
+/**
+ * @brief Atualiza o campo 'status' no cabeçalho para indicar término de escrita
+ *
+ * @param FILE *fp ponteiro para o arquivo
+ */
+void update_header_status(FILE *fp)
+{
+    fseek(fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, fp);
 }
