@@ -600,6 +600,7 @@ void insertionSort_t1 (index_t1 *index, int size)
 /**
  * @brief Faz uma busca binária de um id no vetor de índices.
  *
+ * @param index ponteiro para o vetor de índices.
  * @param beg extremo esquerdo do vetor.
  * @param end extremo direito do vetor.
  * @param value id a ser buscado.

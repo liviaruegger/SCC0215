@@ -123,13 +123,11 @@ int main()
         case 7:
             if (file_type[4] == '1')
             {
-                index_file = read_word(stdin);
-                type1_delete_from(input_fp, index_file);
+
             }
             else if (file_type[4] == '2')
             {
-                index_file = read_word(stdin);
-                type2_delete_from(input_fp, index_file);
+
             }
         break;
 

@@ -648,6 +648,12 @@ void search_by_parameters_type2(FILE *fp)
     free_s_reg_t2(reg_s);
 }
 
+/**
+ * @brief Ordena o vetor de índices.
+ *
+ * @param index ponteiro para o vetor de índices.
+ * @param size tamanho do vetor de índices.
+ */
 void insertionSort_t2 (t2_index *index, int size)
 {
 	int j;
@@ -664,14 +670,14 @@ void insertionSort_t2 (t2_index *index, int size)
 }
 
 /**
- * @brief Retorna o indice do registro de indice que satisfaz o id de busca.
+ * @brief Faz uma busca binária de um id no vetor de índices.
  *
- * @param t2_index **index vetor de structs do tipo t2_index
- * @param int beg indice de inicio do vetor
- * @param int end indice de fim do vetor
- * @param int value valor a ser buscado
+ * @param index ponteiro para o vetor de índices.
+ * @param beg extremo esquerdo do vetor.
+ * @param end extremo direito do vetor.
+ * @param value id a ser buscado.
  *
- * @return indice do registro com o id buscado, retorna -1 se não for encontrado
+ * @return posição do elemento ou -1, caso não seja encontrado.
  */
 int binarySearch_t2 (t2_index *index, int beg, int end, int value)
 {
@@ -696,13 +702,11 @@ int binarySearch_t2 (t2_index *index, int beg, int end, int value)
 }
 
 /**
- * @brief Lê o vetor de registros de indices na RAM e armazena em disco
+ * @brief Escreve o vetor de índices em um arquivo de índices binário.
  *
- * @param t2_index **rp ponteiro para o vetor de indices
- * @param int index_size tamanho do vetor de indices
- * @param FILE *fp arquivo em disco que sera escrito
- *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @param index ponteiro para o vetor de índices.
+ * @param size tamanho do vetor de índices.
+ * @param fp ponteiro para o arquivo binário.
  */
 void type2_index_ram_to_disk (t2_index *index, int size, FILE *fp)
 {
@@ -719,14 +723,12 @@ void type2_index_ram_to_disk (t2_index *index, int size, FILE *fp)
 }
 
 /**
- * @brief Lê o arquivo de indices e armazena em RAM
+ * @brief Lê um arquivo de índices binário e armazena as informaçõe em um vetor
+ * de índices.
  *
- * @param int *index_size ponteiro para o inteiro que armazena o tamanho do vetor
- * @param FILE *fp ponteiro para o arquivo que será lido
- *
- * @return ponteiro para o vetor criado
+ * @param fp ponteiro para o arquivo de dados binário.
+ * @param size tamanho do vetor de índices.
  */
-
 t2_index *type2_index_disk_to_ram (FILE *fp, int *size)
 {
     t2_index *index = NULL;
@@ -752,12 +754,11 @@ t2_index *type2_index_disk_to_ram (FILE *fp, int *size)
 }
 
 /**
- * @brief Cria um arquivo de indices a partir do arquivo de dados
+ * @brief Lê um arquivo de dados binário e, com base nele, cria um arquivo
+ * de índices.
  *
- * @param FILE *data_fp ponteiro para o arquivo de dados
- * @param char *file_name nome do arquivo de indices
- *
- * @return ponteiro para o arquivo de indices criado (FILE *)
+ * @param data_fp ponteiro para o arquivo de dados.
+ * @param file_name nome do arquivo de índices que será criado.
  */
 FILE *new_type2_index (FILE *data_fp, char *file_name)
 {
@@ -858,11 +859,13 @@ long int get_list_head(FILE *data_fp)
 }
 
 /**
- * @brief Insere de forma decrescente um novo offset no arquivo de dados
+ * @brief Insere um novo offset na lista inversamente ordenada do registro de
+ * dados.
  *
- * @param FILE *data_fp ponteiro para o arquivo de dados
- * @param long int new_offset novo offset a ser inserido
- * @param int new_size tamanho do registro que foi removido
+ * @param data_fp ponteiro para o arquivo de dados binário.
+ * @param head offset que está no topo.
+ * @param new_offset novo offset a ser inserido.
+ * @param new_size tamanho do registro do novo offset.
  */
 void type2_update_list(FILE *data_fp, long int *head, long int new_offset, int new_size)
 {
@@ -907,6 +910,19 @@ void type2_update_list(FILE *data_fp, long int *head, long int new_offset, int n
     }
 }
 
+/**
+ * @brief Utilizando um registro de parâmetros e um vetor de índices, procura o
+ * registro.
+ *
+ * @param data_fp ponteiro para o arquivo de dados.
+ * @param index ponteiro para o vetor de índices
+ * @param index_size tamanho do vetor de índices.
+ * @param search_parameters registro de parâmetros.
+ * @param size tamanho do vetor retornado.
+ *
+ * @return retorna um vetor unitário contendo o offset do registro, caso ele seja
+ * encontrado e NULL, caso não seja.
+ */
 long int *type2_search_id (FILE *data_fp, t2_index *index, int index_size, s_reg_t2 *search_param, int *size)
 {
     long int *offsets = NULL;
@@ -937,10 +953,15 @@ long int *type2_search_id (FILE *data_fp, t2_index *index, int index_size, s_reg
 
 
 /**
- * @brief Retorna um vetor de offsets dos registros que satisfazem os critérios
- * de busca.
+ * @brief Utilizando um registro de parâmetros, procura o(s) registro(s) que sa-
+ * tisfazam os critérios de busca.
  *
  * @param fp ponteiro para o arquivo de dados.
+ * @param reg_s registro de parâmetros.
+ * @param size tamanho do vetor retornado.
+ *
+ * @return retorna um vetor contendo o(s) offset(s) do(s) registro(s) que cumpram
+ * os parâmetros e NULL caso não seja encontrado nenhum registro.
  */
 long int *type2_search_parameters_offset(FILE *fp, s_reg_t2 *reg_s, int *size)
 {
@@ -996,7 +1017,17 @@ long int *type2_search_parameters_offset(FILE *fp, s_reg_t2 *reg_s, int *size)
 }
 
 
-
+/**
+ * @brief Remove os registros com base em um vetor que armazena os offsets deles.
+ *
+ * @param fp ponteiro para o arquivo de dados.
+ * @param ind ponteiro para o vetor de índices.
+ * @param size_ind tamanho do vetor de índices.
+ * @param offsets vetor de offsets dos registros a serem removidos.
+ * @param size_off tamanho do vetor de offsets.
+ * @param head offset no topo da pilha.
+ * @param qnt quantidade de novos registros removidos.
+ */
 void type2_delete (FILE *fp, t2_index *ind, int *size_ind, long int *offsets, int size_off, long int *head, int *qnt)
 {
     for (int i = 0; i < size_off; i++)
@@ -1027,11 +1058,11 @@ void type2_delete (FILE *fp, t2_index *ind, int *size_ind, long int *offsets, in
 }
 
 /**
- * @brief Retorna o RRN no campo 'topo'.
+ * @brief Retorna o offset no campo 'topo'.
  *
  * @param fp ponteiro para o arquivo de dados.
  *
- * @return RRN armazenado no campo 'topo'.
+ * @return offset armazenado no campo 'topo'.
  */
 long int type2_get_head (FILE *fp)
 {
@@ -1042,15 +1073,12 @@ long int type2_get_head (FILE *fp)
 }
 
 /**
- * @brief Lê os parâmetros de busca da entrada padrão(stdin), busca o registro
- * e remove ele, caso possível.
+ * @brief Função que lê os parâmetros dos registros a serem removidos da entrada
+ * padrão(stdin) e remove eles, caso possível. Em seguida, atualiza o arquivo
+ * de dados e de índices.
  *
- * @param FILE *data_fp ponteiro para o arquivo de dados
- * @param FILE *index_fp ponteiro para o arquivo de indices
- * @param int *index_size ponteiro para o inteiro que armazena o tamanho do
- * registro de indices
- * @param t2_index **index ponteiro para o vetor de indices em RAM
- * @param int *qnt quantidade de registros removidos
+ * @param data_fp ponteiro para o arquivo de dados.
+ * @param index_name nome do arquivo binário.
  */
 void type2_delete_from (FILE *data_fp, char *index_name)
 {
@@ -1093,4 +1121,105 @@ void type2_delete_from (FILE *data_fp, char *index_name)
 
     type2_update_header(data_fp, qnt, &head);
     update_header_status(data_fp);
+}
+
+/**
+ * @brief Lê da entrada padrão os dados de um registro e insere em uma struct
+ * register_type2.
+ *
+ * @return ponteiro para a struct do registro lido (reg_t2 *).
+ */
+static reg_t2 *read_register_from_stdin()
+{
+    // Formato da entrada:
+    // id1 ano1 qtt1 "sigla1" "cidade1" "marca1" "modelo"
+
+    reg_t2 *reg = malloc(sizeof(reg_t2));
+
+    reg->removed = '0';
+
+    reg->next = -1;
+
+    char *id = read_until(stdin, ' ');
+    reg->id = atoi(id);
+    free(id);
+
+    char *year = read_until(stdin, ' ');
+    if (year[0] >= '0' && year[0] <= '9') reg->year = atoi(year);
+    else reg->year = -1;
+    free(year);
+
+    char *qtt = read_until(stdin, ' ');
+    if (qtt[0] >= '0' && qtt[0] <= '9') reg->qtt = atoi(qtt);
+    else reg->qtt = -1;
+    free(qtt);
+
+    char c = getchar();
+    if (c == '"')
+    {
+        char *state = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->state = state;
+    }
+    else // NULO
+    {
+        read_until(stdin, ' ');
+        reg->state = malloc(sizeof(char) * 2);
+        reg->state[0] = '$';
+        reg->state[1] = '$';
+    }
+
+    char c = getchar();
+    if (c == '"')
+    {
+        char *city = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->city = city;
+    }
+    else // NULO
+    {
+        read_until(stdin, ' ');
+        reg->city = NULL;
+    }
+
+    if (reg->city) reg->city_namesize = strlen(reg->city);
+    else reg->city_namesize = 0;
+
+    char c = getchar();
+    if (c == '"')
+    {
+        char *brand = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->brand = brand;
+    }
+    else // NULO
+    {
+        read_until(stdin, ' ');
+        reg->brand = NULL;
+    }
+
+    if (reg->brand) reg->brand_namesize = strlen(reg->brand);
+    else reg->brand_namesize = 0;
+
+    char c = getchar();
+    if (c == '"')
+    {
+        char *model = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->model = model;
+    }
+    else // NULO
+    {
+        read_line(stdin);
+        reg->model = NULL;
+    }
+
+    if (reg->model) reg->model_namesize = strlen(reg->model);
+    else reg->model_namesize = 0;
+
+    return reg;
 }
