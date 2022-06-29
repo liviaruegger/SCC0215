@@ -656,7 +656,7 @@ void type1_index_ram_to_disk (index_t1 *index, int size, FILE *fp)
  * @param size tamanho do vetor de índices.
  * @param fp ponteiro para o arquivo de dados binário.
  */
-index_t1 *type1_index_disk_to_ram (int *size, FILE *fp)
+index_t1 *type1_index_disk_to_ram (FILE *fp, int *size)
 {
     index_t1 *index = NULL;
     fseek(fp, 0, SEEK_SET);
@@ -688,6 +688,7 @@ index_t1 *type1_index_disk_to_ram (int *size, FILE *fp)
 FILE *new_type1_index(FILE *data_fp, char *file_name)
 {
     FILE *index_fp = fopen(file_name, "wb");
+    fwrite("0", sizeof(char), 1, index_fp);
 
     index_t1 *index = NULL;
     int size = 0;
@@ -780,7 +781,7 @@ void type1_update_stack(FILE *fp, int *topo, int rrn)
  *
  * @return retorna 0 caso o registro não cumpra os requisitos e 1, caso sim.
  */
-static int verify_reg_t2(reg_t1 *reg, reg_t1 *search_parameters)
+static int verify_reg_t1(reg_t1 *reg, reg_t1 *search_parameters)
 {
     if (search_parameters->id != -1 &&
         search_parameters->id != reg->id)
@@ -840,7 +841,7 @@ int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *se
         reg_t1 *reg = read_register_from_bin(data_fp);
         if (reg->removed == '0')
         {
-            if(verify_reg_t2(reg, search_param) == 1)
+            if(verify_reg_t1(reg, search_param) == 1)
             {
                 *size = 1;
                 rrns = malloc(sizeof(int));
@@ -864,13 +865,13 @@ int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *se
  * @return retorna um vetor contendo o(s) RRN(s) do(s) registro(s) que cumprar
  * os parâmetros e NULL, caso não seja encontrado nenhum registro.
  */
-int *mod_search_by_parameters_type1(FILE *fp, reg_t1 *search_parameters, int *rrns_size)
+int *type1_search_parameters_rrn(FILE *fp, reg_t1 *search_parameters, int *rrns_size)
 {
     int *rrns = NULL;
     *rrns_size = 0;
     char status;
-    fread(&status, sizeof(char), 1, fp);
     fseek(fp, 0, SEEK_SET);
+    fread(&status, sizeof(char), 1, fp);
 
     if (status == '0')
     {
@@ -884,7 +885,7 @@ int *mod_search_by_parameters_type1(FILE *fp, reg_t1 *search_parameters, int *rr
     {
         fseek(fp, offset, SEEK_SET);
         reg_t1 *reg = read_register_from_bin(fp);
-        if (verify_reg_t2(reg, search_parameters) == 1)
+        if (verify_reg_t1(reg, search_parameters) == 1)
         {
             *rrns_size = *rrns_size + 1;
             rrns = realloc(rrns, *rrns_size * sizeof(int));
@@ -926,9 +927,9 @@ void type1_delete (FILE *fp, index_t1 *ind, int *size_ind, int *rrns, int size_r
                     ind[j] = ind[j + 1];
                 }
                 *size_ind = *size_ind - 1;
-                *qnt = *qnt + 1;
             }
         }
+        *qnt = *qnt + 1;
         type1_update_stack(fp, topo, rrns[i]);
     }
 }
@@ -961,7 +962,7 @@ void type1_delete_from (FILE *data_fp, char *index_name)
     int n, topo, size, id, rrns_size, qnt = 0;
     int *rrns;
     FILE *index_fp = fopen(index_name, "rb");
-    index_t1 *index = type1_index_disk_to_ram (&size, index_fp);
+    index_t1 *index = type1_index_disk_to_ram (index_fp, &size);
     topo = type1_get_topo(data_fp);
 
     scanf(" %d", &n);
@@ -978,7 +979,7 @@ void type1_delete_from (FILE *data_fp, char *index_name)
         }
         else
         {
-            rrns = mod_search_by_parameters_type1(data_fp, search_parameters, &rrns_size);
+            rrns = type1_search_parameters_rrn(data_fp, search_parameters, &rrns_size);
         }
         type1_delete(data_fp, index, &size, rrns, rrns_size, &topo, &qnt);
 

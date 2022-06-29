@@ -24,7 +24,10 @@ void print_all_from_bin_type2(FILE *fp);
 // Funcionalidade 3
 void search_by_parameters_type2(FILE *fp);
 
-void *new_t2_index_file (FILE *data_fp, char *file_name);
-void type2_deletion(FILE *data_fp, FILE *index_fp);
-void funct6(FILE *input_fp, FILE *index_fp, char *index_file);
-void funct7(FILE *input_fp, FILE *index_fp, char *index_file);
+// Funcionalidade 5
+FILE *new_type2_index (FILE *data_fp, char *file_name);
+
+// Funcionalidade 6
+void type2_delete_from (FILE *data_fp, char *index_name);
+
+// Funcionalidade 7
