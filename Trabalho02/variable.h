@@ -31,3 +31,7 @@ FILE *new_type2_index (FILE *data_fp, char *file_name);
 void type2_delete_from (FILE *data_fp, char *index_name);
 
 // Funcionalidade 7
+void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers);
+
+// Funcionalidade 8
+void type2_update_set_where (FILE *data_fp, char *index_name);

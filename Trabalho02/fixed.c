@@ -1021,7 +1021,7 @@ static reg_t1 *read_register_from_stdin()
 
     reg->next = -1;
 
-    char *id = read_until(stdin, ' '); 
+    char *id = read_until(stdin, ' ');
     reg->id = atoi(id);
     free(id);
 
@@ -1040,7 +1040,7 @@ static reg_t1 *read_register_from_stdin()
     {
         char *state = read_until(stdin, '"');
         getchar(); // Consome o espaço que sobra
-        
+
         reg->state = state;
     }
     else // NULO
@@ -1050,13 +1050,13 @@ static reg_t1 *read_register_from_stdin()
         reg->state[0] = '$';
         reg->state[1] = '$';
     }
-    
+
     c = getchar();
     if (c == '"')
     {
         char *city = read_until(stdin, '"');
         getchar(); // Consome o espaço que sobra
-        
+
         reg->city = city;
     }
     else // NULO
@@ -1073,7 +1073,7 @@ static reg_t1 *read_register_from_stdin()
     {
         char *brand = read_until(stdin, '"');
         getchar(); // Consome o espaço que sobra
-        
+
         reg->brand = brand;
     }
     else // NULO
@@ -1090,7 +1090,7 @@ static reg_t1 *read_register_from_stdin()
     {
         char *model = read_until(stdin, '"');
         getchar(); // Consome o espaço que sobra
-        
+
         reg->model = model;
     }
     else // NULO
@@ -1107,7 +1107,7 @@ static reg_t1 *read_register_from_stdin()
 
 /**
  * @brief Insere ID e RRN de um novo registro no índice em memória primária.
- * 
+ *
  * @param id ID do registro adicionado;
  * @param rrn RRN do registro adicionado;
  * @param index ponteiro para o índice (RAM);
@@ -1126,7 +1126,7 @@ static index_t1 *insert_into_index(int id, int rrn, index_t1 *index, int index_s
 /**
  * @brief Adiciona novo(s) registro(s) a um arquivo de dados e atualiza o
  * arquivo de índice.
- * 
+ *
  * @param data_fp ponteiro para o arquivo de dados;
  * @param index_fp ponteiro para o arquivo de índice;
  * @param n_registers número de registros a serem adicionados.
@@ -1145,7 +1145,7 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
         {
             fseek(data_fp, 174, SEEK_SET);
             fread(&rrn, sizeof(int), 1, data_fp);
-            
+
             int next_rrn = rrn + 1;
             fseek(data_fp, 174, SEEK_SET);
             fwrite(&next_rrn, sizeof(int), 1, data_fp);
@@ -1156,7 +1156,7 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
         {
             int offset = HEADER_SIZE + (top * REGISTER_SIZE) + 1;
             fseek(data_fp, offset, SEEK_SET);
-            
+
             int next; // Novo topo
             fread(&next, sizeof(int), 1, data_fp);
             type1_update_stack(data_fp, &next, next);
@@ -1179,19 +1179,19 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
     }
 
     type1_index_ram_to_disk(index, index_size, index_fp);
-    
+
     // Marcar o arquivo de índice como consistente
     fseek(index_fp, 0, SEEK_SET);
     fwrite("1", sizeof(char), 1, index_fp);
-    
+
     fclose(index_fp);
 }
 
 
 /**
  * @brief APENAS DEBUG -> tirar da versão final do trabalho
- * 
- * @param filename 
+ *
+ * @param filename
  */
 void read_and_print_index_file(char *filename)
 {

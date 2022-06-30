@@ -29,7 +29,7 @@ int main()
 
     FILE *input_fp = NULL;
     if (func == 1) input_fp = fopen(input_file, "r");
-    else if (func == 6 || func == 7) input_fp = fopen(input_file, "r+b");
+    else if (func == 6 || func == 7 || func == 8) input_fp = fopen(input_file, "r+b");
     else input_fp = fopen(input_file, "rb");
 
     if (!input_fp)
@@ -125,7 +125,7 @@ int main()
             index_file = read_word(stdin);
             FILE *index_fp = fopen(index_file, "r+b");
             scanf("%d", &n);
-            
+
             if (!index_fp)
             {
                 printf("Falha no processamento do arquivo.\n");
@@ -142,26 +142,26 @@ int main()
                 }
                 else if (file_type[4] == '2') // TODO
                 {
-
+                    insert_new_registers_type2(input_fp, index_fp, n);
                 }
             }
         break;
 
         case 8:
+            index_file = read_word(stdin);
             if (file_type[4] == '1')
             {
 
             }
             else if (file_type[4] == '2')
             {
-
+                type2_update_set_where(input_fp, index_file);
             }
         break;
     }
 
     fclose(input_fp);
-
-    if (func == 6 || func == 7)
+    if (func == 6 || func == 7 || func == 8)
     {
         binarioNaTela(input_file);
         binarioNaTela(index_file);
