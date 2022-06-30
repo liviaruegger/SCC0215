@@ -604,6 +604,7 @@ void insertionSort_t1(index_t1 *index, int size)
 /**
  * @brief Faz uma busca binária de um id no vetor de índices.
  *
+ * @param index ponteiro para o vetor de índices.
  * @param beg extremo esquerdo do vetor.
  * @param end extremo direito do vetor.
  * @param value id a ser buscado.
@@ -692,6 +693,7 @@ static index_t1 *type1_index_disk_to_ram (int *size, FILE *fp)
 FILE *new_type1_index(FILE *data_fp, char *file_name)
 {
     FILE *index_fp = fopen(file_name, "wb");
+    fwrite("0", sizeof(char), 1, index_fp);
 
     index_t1 *index = NULL;
     int size = 0;
@@ -868,13 +870,13 @@ int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *se
  * @return retorna um vetor contendo o(s) RRN(s) do(s) registro(s) que cumprar
  * os parâmetros e NULL, caso não seja encontrado nenhum registro.
  */
-int *mod_search_by_parameters_type1(FILE *fp, reg_t1 *search_parameters, int *rrns_size)
+int *type1_search_parameters_rrn(FILE *fp, reg_t1 *search_parameters, int *rrns_size)
 {
     int *rrns = NULL;
     *rrns_size = 0;
     char status;
-    fread(&status, sizeof(char), 1, fp);
     fseek(fp, 0, SEEK_SET);
+    fread(&status, sizeof(char), 1, fp);
 
     if (status == '0')
     {
@@ -930,9 +932,9 @@ void type1_delete(FILE *fp, index_t1 *ind, int *size_ind, int *rrns, int size_rr
                     ind[j] = ind[j + 1];
                 }
                 *size_ind = *size_ind - 1;
-                *qnt = *qnt + 1;
             }
         }
+        *qnt = *qnt + 1;
         type1_update_stack(fp, topo, rrns[i]);
     }
 }
@@ -982,7 +984,7 @@ void type1_delete_from (FILE *data_fp, char *index_name)
         }
         else
         {
-            rrns = mod_search_by_parameters_type1(data_fp, search_parameters, &rrns_size);
+            rrns = type1_search_parameters_rrn(data_fp, search_parameters, &rrns_size);
         }
         type1_delete(data_fp, index, &size, rrns, rrns_size, &topo, &qnt);
 

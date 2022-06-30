@@ -101,7 +101,7 @@ int main()
             }
             else if (file_type[4] == '2')
             {
-                output_fp = new_t2_index_file(input_fp, output_file);
+                output_fp = new_type2_index (input_fp, output_file);
                 fclose(output_fp);
 
                 binarioNaTela(output_file);
@@ -117,9 +117,7 @@ int main()
             }
             else if (file_type[4] == '2')
             {
-                FILE *index_fp = fopen(index_file, "r+b");
-
-                funct6(input_fp, index_fp, index_file);
+                type2_delete_from(input_fp, index_file);
             }
         break;
 
