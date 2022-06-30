@@ -32,3 +32,6 @@ FILE *new_type1_index(FILE *data_fp, char *file_name);
 
 // Funcionalidade 6
 void type1_delete_from (FILE *data_fp, char *index_name);
+
+// Funcionalidade 7
+void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers);

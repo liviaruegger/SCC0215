@@ -18,6 +18,7 @@
 #include "utils.h"
 
 #define HEADER_SIZE 182
+#define REGISTER_SIZE 97
 
 typedef struct register_type1
 {
@@ -186,16 +187,14 @@ static void free_register(reg_t1 *reg)
 }
 
 /**
- * @brief Chama a função que lê um registro de um arquivo .csv e escreve esse
- * registro em um arquivo binário de dados (criado previamente).
+ * @brief Escreve um registro em um arquivo binário de dados
+ * (aberto previamente).
  *
- * @param input arquivo .csv de entrada;
+ * @param reg registro para escrever no arquivo;
  * @param output arquivo .bin de saída.
  */
-static void read_and_write_register(FILE *input, FILE *output)
+static void write_register(reg_t1 *reg, FILE *output)
 {
-    reg_t1 *reg = read_register_from_csv(input);
-
     // Campos de tamanho fixo
     fwrite(&reg->removed, sizeof(char), 1, output);
     fwrite(&reg->next,    sizeof(int),  1, output);
@@ -231,7 +230,7 @@ static void read_and_write_register(FILE *input, FILE *output)
         bytes_written += 4 + 1 + reg->model_namesize;
     }
 
-    while (bytes_written < 97)
+    while (bytes_written < REGISTER_SIZE)
     {
         fwrite("$", sizeof(char), 1, output);
         bytes_written++;
@@ -256,7 +255,8 @@ void read_and_write_all_type1(FILE *input, FILE *output)
     while (c != EOF)
     {
         ungetc(c, input);
-        read_and_write_register(input, output);
+        reg_t1 *reg = read_register_from_csv(input);
+        write_register(reg, output);
         register_count++;
 
         c = fgetc(input);
@@ -398,7 +398,7 @@ void print_all_from_bin_type1(FILE *fp)
     fseek(fp, 0, SEEK_END);
     long int file_size = ftell(fp);
 
-    for (long int offset = HEADER_SIZE; offset < file_size; offset += 97)
+    for (long int offset = HEADER_SIZE; offset < file_size; offset += REGISTER_SIZE)
     {
         fseek(fp, offset, SEEK_SET);
         reg_t1 *reg = read_register_from_bin(fp);
@@ -529,7 +529,7 @@ void search_by_parameters_type1(FILE *fp)
     fseek(fp, 0, SEEK_END);
     long int file_size = ftell(fp);
 
-    for (long int offset = HEADER_SIZE; offset < file_size; offset += 97)
+    for (long int offset = HEADER_SIZE; offset < file_size; offset += REGISTER_SIZE)
     {
         fseek(fp, offset, SEEK_SET);
         reg_t1 *reg = read_register_from_bin(fp);
@@ -558,7 +558,7 @@ void search_by_rrn_type1(FILE *fp, int rrn)
         return;
     }
 
-    long int offset = HEADER_SIZE + (rrn * 97);
+    long int offset = HEADER_SIZE + (rrn * REGISTER_SIZE);
 
     fseek(fp, 0, SEEK_END);
     long int file_size = ftell(fp);
@@ -588,12 +588,15 @@ void insertionSort_t1 (index_t1 *index, int size)
 	for(j = 1; j < size; j++)
     {
 		int chave = index[j].id;
+        int rrn = index[j].rrn;
 		int i = j - 1;
 		while (i >= 0 && index[i].id > chave){
-            index[i + 1] = index[i];
+            index[i + 1].id = index[i].id;
+            index[i + 1].rrn = index[i].rrn;
 			i--;
 		}
-		index[i + 1] = index[j];
+		index[i + 1].id = chave;
+        index[i + 1].rrn = rrn;
 	}
 }
 
@@ -706,7 +709,7 @@ FILE *new_type1_index(FILE *data_fp, char *file_name)
 
             fseek(data_fp, 4, SEEK_CUR);
             fread(&index[size - 1].id, sizeof(int), 1, data_fp);
-            index[size - 1].rrn = (offset - HEADER_SIZE) / 97;
+            index[size - 1].rrn = (offset - HEADER_SIZE) / REGISTER_SIZE;
             fseek(data_fp, 88, SEEK_CUR);
         }
         else
@@ -769,7 +772,7 @@ void type1_update_header(FILE *fp, int qnt, int *topo)
  */
 void type1_update_stack(FILE *fp, int *topo, int rrn)
 {
-    fseek(fp, HEADER_SIZE + (rrn * 97) + 1, SEEK_SET);
+    fseek(fp, HEADER_SIZE + (rrn * REGISTER_SIZE) + 1, SEEK_SET);
     fwrite(topo, sizeof(int), 1, fp);
     *topo = rrn;
 }
@@ -837,7 +840,7 @@ int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *se
     if (position != -1)
     {
         int rrn = index[position].rrn;
-        fseek(data_fp, HEADER_SIZE + (rrn * 97), SEEK_SET);
+        fseek(data_fp, HEADER_SIZE + (rrn * REGISTER_SIZE), SEEK_SET);
 
         reg_t1 *reg = read_register_from_bin(data_fp);
         if (reg->removed == '0')
@@ -882,7 +885,7 @@ int *type1_search_parameters_rrn(FILE *fp, reg_t1 *search_parameters, int *rrns_
     fseek(fp, 0, SEEK_END);
     long int file_size = ftell(fp);
 
-    for (long int offset = HEADER_SIZE; offset < file_size; offset += 97)
+    for (long int offset = HEADER_SIZE; offset < file_size; offset += REGISTER_SIZE)
     {
         fseek(fp, offset, SEEK_SET);
         reg_t1 *reg = read_register_from_bin(fp);
@@ -890,7 +893,7 @@ int *type1_search_parameters_rrn(FILE *fp, reg_t1 *search_parameters, int *rrns_
         {
             *rrns_size = *rrns_size + 1;
             rrns = realloc(rrns, *rrns_size * sizeof(int));
-            rrns[*rrns_size - 1] = (offset - HEADER_SIZE) / 97;
+            rrns[*rrns_size - 1] = (offset - HEADER_SIZE) / REGISTER_SIZE;
         }
         free_register(reg);
     }
@@ -912,7 +915,7 @@ void type1_delete (FILE *fp, index_t1 *ind, int *size_ind, int *rrns, int size_r
 {
     for (int i = 0; i < size_rrn; i++)
     {
-        fseek(fp, HEADER_SIZE + (rrns[i] * 97), SEEK_SET);
+        fseek(fp, HEADER_SIZE + (rrns[i] * REGISTER_SIZE), SEEK_SET);
         fwrite("1", sizeof(char), 1, fp);
 
         int id;
@@ -942,7 +945,7 @@ void type1_delete (FILE *fp, index_t1 *ind, int *size_ind, int *rrns, int size_r
  *
  * @return RRN armazenado no campo 'topo'.
  */
-int type1_get_topo (FILE *fp)
+int type1_get_top (FILE *fp)
 {
     int topo;
     fseek(fp, 1, SEEK_SET);
@@ -964,7 +967,7 @@ void type1_delete_from (FILE *data_fp, char *index_name)
     int *rrns;
     FILE *index_fp = fopen(index_name, "rb");
     index_t1 *index = type1_index_disk_to_ram (index_fp, &size);
-    topo = type1_get_topo(data_fp);
+    topo = type1_get_top(data_fp);
 
     scanf(" %d", &n);
 
@@ -998,4 +1001,175 @@ void type1_delete_from (FILE *data_fp, char *index_name)
 
     type1_update_header(data_fp, qnt, &topo);
     update_header_status(data_fp);
+}
+
+
+/**
+ * @brief Lê da entrada padrão os dados de um registro e insere em uma struct
+ * register_type1.
+ *
+ * @return ponteiro para a struct do registro lido (reg_t1 *).
+ */
+static reg_t1 *read_register_from_stdin()
+{
+    // Formato da entrada:
+    // id1 ano1 qtt1 "sigla1" "cidade1" "marca1" "modelo"
+
+    reg_t1 *reg = malloc(sizeof(reg_t1));
+
+    reg->removed = '0';
+
+    reg->next = -1;
+
+    char *id = read_until(stdin, ' ');
+    reg->id = atoi(id);
+    free(id);
+
+    char *year = read_until(stdin, ' ');
+    if (year[0] >= '0' && year[0] <= '9') reg->year = atoi(year);
+    else reg->year = -1;
+    free(year);
+
+    char *qtt = read_until(stdin, ' ');
+    if (qtt[0] >= '0' && qtt[0] <= '9') reg->qtt = atoi(qtt);
+    else reg->qtt = -1;
+    free(qtt);
+
+    char c = getchar();
+    if (c == '"')
+    {
+        char *state = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->state = state;
+    }
+    else // NULO
+    {
+        read_until(stdin, ' ');
+        reg->state = malloc(sizeof(char) * 2);
+        reg->state[0] = '$';
+        reg->state[1] = '$';
+    }
+
+    c = getchar();
+    if (c == '"')
+    {
+        char *city = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->city = city;
+    }
+    else // NULO
+    {
+        read_until(stdin, ' ');
+        reg->city = NULL;
+    }
+
+    if (reg->city) reg->city_namesize = strlen(reg->city);
+    else reg->city_namesize = 0;
+
+    c = getchar();
+    if (c == '"')
+    {
+        char *brand = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->brand = brand;
+    }
+    else // NULO
+    {
+        read_until(stdin, ' ');
+        reg->brand = NULL;
+    }
+
+    if (reg->brand) reg->brand_namesize = strlen(reg->brand);
+    else reg->brand_namesize = 0;
+
+    c = getchar();
+    if (c == '"')
+    {
+        char *model = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->model = model;
+    }
+    else // NULO
+    {
+        char *s =read_line(stdin);
+        free(s);
+        reg->model = NULL;
+    }
+
+    if (reg->model) reg->model_namesize = strlen(reg->model);
+    else reg->model_namesize = 0;
+
+    return reg;
+}
+
+static void insert_into_index(int id, int rrn, index_t1 *index, int *index_size)
+{
+    *index_size += *index_size + 1;
+    index = realloc(index, *index_size * sizeof(index_t1));
+    index[*index_size - 1].id = id;
+    index[*index_size - 1].rrn = rrn;
+}
+
+// =====================================================================================================================
+
+
+void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
+{
+    int index_size, rrn;
+    index_t1 *index = type1_index_disk_to_ram(index_fp, &index_size);
+
+    // Marcar o arquivo de índice como inconsistente
+    fseek(index_fp, 0, SEEK_SET);
+    fwrite("0", sizeof(char), 1, index_fp);
+
+    for (int i = 0; i < n_registers; i++)
+    {
+        reg_t1 *reg = read_register_from_stdin();
+
+        int top = type1_get_top(data_fp);
+        printf("top = %d\n", top);
+        if (top == -1)
+        {
+            fseek(data_fp, 0, SEEK_END);
+            rrn = (ftell(data_fp) - HEADER_SIZE) / REGISTER_SIZE;
+
+            int next_rrn = rrn + 1;
+            fseek(data_fp, 174, SEEK_SET);
+            fwrite(&next_rrn, sizeof(int), 1, data_fp);
+
+            fseek(data_fp, 0, SEEK_END);
+        }
+        else
+        {
+            int offset = HEADER_SIZE + (top * REGISTER_SIZE) + 1;
+            fseek(data_fp, offset, SEEK_SET);
+
+            int next; // Novo topo
+            fread(&next, sizeof(int), 1, data_fp);
+            type1_update_stack(data_fp, &next, next);
+
+            offset = HEADER_SIZE + (top * REGISTER_SIZE);
+            fseek(data_fp, offset, SEEK_SET);
+            rrn = top;
+        }
+
+        int id = reg->id;
+
+        write_register(reg, data_fp); // Escreve e já desaloca reg
+        insert_into_index(id, rrn, index, &index_size);
+        printf("rrn: %d\n", rrn); // DEBUG
+    }
+
+    type1_index_ram_to_disk(index, index_size, index_fp);
+    free(index);
+
+    // Marcar o arquivo de índice como consistente
+    fseek(index_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, index_fp);
+
+    fclose(index_fp);
 }
