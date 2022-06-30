@@ -955,6 +955,18 @@ static int type1_get_top(FILE *fp)
 }
 
 /**
+ * @brief Atualiza o topo escrito no cabeçalho do arquivo.
+ * 
+ * @param fp ponteiro para o arquivo;
+ * @param new_top RRN que deve ser colocado no campo 'topo' do cabeçalho.
+ */
+static void type1_update_top(FILE *fp, int new_top)
+{
+    fseek(fp, 1, SEEK_SET);
+    fwrite(&new_top, sizeof(int), 1, fp);
+}
+
+/**
  * @brief Função que lê os parâmetros dos registros a serem removidos da entrada
  * padrão(stdin) e remove eles, caso possível. Em seguida, atualiza o arquivo
  * de dados e de índices.
@@ -1136,6 +1148,8 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
     int index_size, rrn;
     index_t1 *index = type1_index_disk_to_ram(&index_size, index_fp);
 
+    int pop_count = 0;
+
     for (int i = 0; i < n_registers; i++)
     {
         reg_t1 *reg = read_register_from_stdin();
@@ -1159,11 +1173,13 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
 
             int next; // Novo topo
             fread(&next, sizeof(int), 1, data_fp);
-            type1_update_stack(data_fp, &next, next);
+            type1_update_top(data_fp, next);
 
             offset = HEADER_SIZE + (top * REGISTER_SIZE);
             fseek(data_fp, offset, SEEK_SET);
             rrn = top;
+
+            pop_count++;
         }
 
         int id = reg->id;
@@ -1179,6 +1195,8 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
     }
 
     type1_index_ram_to_disk(index, index_size, index_fp);
+
+    type1_update_nroRegRem(data_fp, (-1) * pop_count);
 
     // Marcar o arquivo de índice como consistente
     fseek(index_fp, 0, SEEK_SET);

@@ -140,7 +140,7 @@ int main()
                 {
                     insert_new_registers_type1(input_fp, index_fp, n);
                 }
-                else if (file_type[4] == '2') // TODO
+                else if (file_type[4] == '2')
                 {
                     insert_new_registers_type2(input_fp, index_fp, n);
                 }
