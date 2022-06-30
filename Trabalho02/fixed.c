@@ -582,19 +582,23 @@ void search_by_rrn_type1(FILE *fp, int rrn)
  * @param index ponteiro para o vetor de índices.
  * @param size tamanho do vetor de índices.
  */
-void insertionSort_t1 (index_t1 *index, int size)
+void insertionSort_t1(index_t1 *index, int size)
 {
-	int j;
-	for(j = 1; j < size; j++)
+    int j;
+    for (j = 1; j < size; j++)
     {
-		int chave = index[j].id;
-		int i = j - 1;
-		while (i >= 0 && index[i].id > chave){
-            index[i + 1] = index[i];
-			i--;
-		}
-		index[i + 1] = index[j];
-	}
+        int chave = index[j].id;
+        int rrn = index[j].rrn;
+        int i = j - 1;
+        while (i >= 0 && index[i].id > chave)
+        {
+            index[i + 1].id = index[i].id;
+            index[i + 1].rrn = index[i].rrn;
+            i--;
+        }
+        index[i + 1].id = chave;
+        index[i + 1].rrn = rrn;
+    }
 }
 
 /**
@@ -1099,24 +1103,36 @@ static reg_t1 *read_register_from_stdin()
     return reg;
 }
 
-static void insert_into_index(int id, int rrn, index_t1 **index, int index_size)
+/**
+ * @brief Insere ID e RRN de um novo registro no índice em memória primária.
+ * 
+ * @param id ID do registro adicionado;
+ * @param rrn RRN do registro adicionado;
+ * @param index ponteiro para o índice (RAM);
+ * @param index_size quantidade de elementos no índice;
+ * @return ponteiro para o índice na RAM (index_t1 *).
+ */
+static index_t1 *insert_into_index(int id, int rrn, index_t1 *index, int index_size)
 {
-    *index = realloc(*index, index_size * sizeof(index_t1));
-    (*index)[index_size - 1].id = id;
-    (*index)[index_size - 1].rrn = rrn;
+    index = realloc(index, index_size * sizeof(index_t1));
+    index[index_size - 1].id = id;
+    index[index_size - 1].rrn = rrn;
+
+    return index;
 }
 
-// =====================================================================================================================
-
-
+/**
+ * @brief Adiciona novo(s) registro(s) a um arquivo de dados e atualiza o
+ * arquivo de índice.
+ * 
+ * @param data_fp ponteiro para o arquivo de dados;
+ * @param index_fp ponteiro para o arquivo de índice;
+ * @param n_registers número de registros a serem adicionados.
+ */
 void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
 {
     int index_size, rrn;
     index_t1 *index = type1_index_disk_to_ram(&index_size, index_fp);
-
-    // Marcar o arquivo de índice como inconsistente
-    fseek(index_fp, 0, SEEK_SET);
-    fwrite("0", sizeof(char), 1, index_fp);
 
     for (int i = 0; i < n_registers; i++)
     {
@@ -1125,9 +1141,9 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
         int top = type1_get_top(data_fp);
         if (top == -1)
         {
-            fseek(data_fp, 0, SEEK_END);
-            rrn = (ftell(data_fp) - HEADER_SIZE) / REGISTER_SIZE;
-
+            fseek(data_fp, 174, SEEK_SET);
+            fread(&rrn, sizeof(int), 1, data_fp);
+            
             int next_rrn = rrn + 1;
             fseek(data_fp, 174, SEEK_SET);
             fwrite(&next_rrn, sizeof(int), 1, data_fp);
@@ -1151,8 +1167,13 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
         int id = reg->id;
 
         write_register(reg, data_fp); // Escreve e já desaloca reg
-        insert_into_index(id, rrn, &index, ++index_size);
-        printf("rrn: %d\n", rrn); // DEBUG
+
+        // Marcar o arquivo de índice como inconsistente
+        fseek(index_fp, 0, SEEK_SET);
+        fwrite("0", sizeof(char), 1, index_fp);
+
+        // Adicionar no índice
+        index = insert_into_index(id, rrn, index, ++index_size);
     }
 
     type1_index_ram_to_disk(index, index_size, index_fp);
@@ -1162,4 +1183,34 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
     fwrite("1", sizeof(char), 1, index_fp);
     
     fclose(index_fp);
+}
+
+
+/**
+ * @brief APENAS DEBUG -> tirar da versão final do trabalho
+ * 
+ * @param filename 
+ */
+void read_and_print_index_file(char *filename)
+{
+    FILE *fp = fopen(filename, "rb");
+
+    fseek(fp, 0, SEEK_SET);
+    char c = fgetc(fp);
+
+    int size = 0;
+
+    if (c == '1')
+    {
+        int id, rrn;
+        while(fread(&id, sizeof(int), 1, fp) == 1)
+        {
+            size++;
+            fread(&rrn, sizeof(int), 1, fp);
+
+            printf("Line %d:\tID: %d\tRRN: %d\n", size, id, rrn);
+        }
+    }
+
+    fclose(fp);
 }
