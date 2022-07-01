@@ -8,7 +8,11 @@
  *         Módulo que trabalha com arquivos Tipo 2 (Arquivo de Dados para
  *         Registros de Tamanho Variável)
  *
+<<<<<<< HEAD
  * @date   2022-06-30
+=======
+ * @date   2022-06-29
+>>>>>>> 676259d2de10192e6b06a1389d34f28578791dce
  *
  */
 
