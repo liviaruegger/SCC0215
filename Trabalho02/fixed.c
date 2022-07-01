@@ -236,7 +236,7 @@ static void write_register(reg_t1 *reg, FILE *output)
         bytes_written++;
     }
 
-    free_register(reg);
+    // free_register(reg);
 }
 
 /**
@@ -1240,8 +1240,6 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
     fclose(index_fp);
 }
 
-// =====================================================================================================================
-
 /**
  * @brief Verifica se um registro contendo parâmetros de busca tem o ID como
  * único parâmetro.
@@ -1271,6 +1269,8 @@ static int only_id(reg_t1 *search_parameters)
  * @param fp ponteiro para o arquivo de dados;
  * @param offset byte offset do registro que deve ser modificado;
  * @param fields_to_update campos que devem ser atualizados.
+ * @param index ponteiro para o índice (RAM);
+ * @param index_size tamanho do índice.
  */
 static void update_register(FILE *fp, long int offset, reg_t1 *fields_to_update, index_t1 *index, int index_size)
 {
@@ -1335,6 +1335,16 @@ static void update_register(FILE *fp, long int offset, reg_t1 *fields_to_update,
     write_register(reg, fp);
 }
 
+/**
+ * @brief Encontra registros que satisfazem os critérios de busca em 'search_parameters'
+ * e os atualiza com os campos/valores identificados em 'fields_to_update'.
+ * 
+ * @param fp ponteiro para o arquivo de dados que deve ser atualizado;
+ * @param search_parameters struct com parâmetros de busca;
+ * @param fields_to_update campos/valores para atualizar;
+ * @param index ponteiro para o índice (RAM);
+ * @param index_size tamanho do índice.
+ */
 static void update_by_search_parameters(FILE *fp, reg_t1 *search_parameters, reg_t1 *fields_to_update, index_t1 *index, int index_size)
 {
     fseek(fp, 0, SEEK_END);
@@ -1349,11 +1359,16 @@ static void update_by_search_parameters(FILE *fp, reg_t1 *search_parameters, reg
     }
 }
 
-
-// =====================================================================================================================
-
-
-void update_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
+/**
+ * @brief Atualiza registros no arquivo de dados segundo especificações lidas
+ * da entrada padrão, que identificam quais os registros a serem modificados e
+ * quais os campos/valores a serem atualizados.
+ * 
+ * @param data_fp ponteiro para o arquivo de dados;
+ * @param index_fp ponteiro para o arquivo de índice;
+ * @param n_registers número de buscas a serem feitas.
+ */
+void update_registers_type1(FILE *data_fp, FILE *index_fp, int n)
 {
     // Marcar arquivo de dados como inconsistente
     fseek(data_fp, 0, SEEK_SET);
@@ -1362,13 +1377,10 @@ void update_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
     int index_size;
     index_t1 *index = type1_index_disk_to_ram(&index_size, index_fp);
 
-    for (int i = 0; i < n_registers; i++)
+    for (int i = 0; i < n; i++)
     {
         reg_t1 *search_parameters = get_search_parameters();
         reg_t1 *fields_to_update = get_search_parameters();
-
-        //printf("\n\n\nparametros de busca:\n");
-        //print_register_info(search_parameters);
 
         if (only_id(search_parameters))
         {
@@ -1385,9 +1397,6 @@ void update_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
         {
             update_by_search_parameters(data_fp, search_parameters, fields_to_update, index, index_size);
         }
-        
-        //printf("\ncampos para atualizar:\n");
-        //print_register_info(fields_to_update);   
     }
 
     // Atualizar índice
@@ -1401,39 +1410,4 @@ void update_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
     // Marcar arquivo de dados como consistente
     fseek(data_fp, 0, SEEK_SET);
     fwrite("1", sizeof(char), 1, data_fp);
-}
-
-
-
-
-
-// =====================================================================================================================
-
-/**
- * @brief APENAS DEBUG -> tirar da versão final do trabalho
- *
- * @param filename
- */
-void read_and_print_index_file(char *filename)
-{
-    FILE *fp = fopen(filename, "rb");
-
-    fseek(fp, 0, SEEK_SET);
-    char c = fgetc(fp);
-
-    int size = 0;
-
-    if (c == '1')
-    {
-        int id, rrn;
-        while(fread(&id, sizeof(int), 1, fp) == 1)
-        {
-            size++;
-            fread(&rrn, sizeof(int), 1, fp);
-
-            printf("Line %d:\tID: %d\tRRN: %d\n", size, id, rrn);
-        }
-    }
-
-    fclose(fp);
 }
