@@ -1328,7 +1328,7 @@ static t2_index *type2_reg_insert_end (FILE *data_fp, reg_t2 *reg, t2_index *ind
 }
 
 /**
- * @brief Lê n_registers da entrada padrão e insere eles no 
+ * @brief Lê n_registers da entrada padrão e insere eles no
  *
  * @param data_fp ponteiro para o arquivo de dados.
  * @param reg ponteiro para o registro a ser inserido.
