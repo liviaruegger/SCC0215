@@ -427,7 +427,7 @@ static reg_t1 *get_search_parameters()
 
     int n;
     scanf(" %d", &n);
-    getchar(); // Consome o '\n'
+    getchar(); // Consome o '\n' ou espaço
 
     for (int i = 0; i < n; i++)
     {
@@ -438,12 +438,47 @@ static reg_t1 *get_search_parameters()
         if (c == '"')
         {
             field_content = read_until(stdin, '"');
-            getchar(); // Consome o '\n'
+            getchar(); // Consome o '\n' ou espaço
 
             if      (strcmp(field_name, "sigla")  == 0) reg->state = field_content;
             else if (strcmp(field_name, "cidade") == 0) reg->city  = field_content;
             else if (strcmp(field_name, "marca")  == 0) reg->brand = field_content;
             else if (strcmp(field_name, "modelo") == 0) reg->model = field_content;
+        }
+        else if (c == 'N') // NULO
+        {
+            read_word(stdin); // Descarta leitura "ULO "
+            field_content = NULL;
+
+            if (strcmp(field_name, "sigla") == 0)
+            {
+                reg->state = malloc(sizeof(char) * 2);
+                reg->state[0] = '$';
+                reg->state[1] = '$';
+            }
+            else if (strcmp(field_name, "cidade") == 0)
+            {
+                reg->city  = field_content;
+                reg->city_namesize = -2;            
+            }
+            else if (strcmp(field_name, "marca") == 0)
+            {
+                reg->brand = field_content;
+                reg->brand_namesize = -2;
+            }
+            else if (strcmp(field_name, "modelo") == 0)
+            {
+                reg->model = field_content;
+                reg->model_namesize = -2;
+            }
+            else if (strcmp(field_name, "ano") == 0)
+            {
+                reg->year = -2; // Identifica para sobrescrever
+            }
+            else if (strcmp(field_name, "qtt") == 0)
+            {
+                reg->qtt  = -2; // Identifica para sobrescrever
+            }
         }
         else
         {
@@ -611,7 +646,7 @@ void insertionSort_t1(index_t1 *index, int size)
  *
  * @return posição do elemento ou -1, caso não seja encontrado.
  */
-int binarySearch_t1 (index_t1 *index, int beg, int end, int value)
+int binarySearch_t1(index_t1 *index, int beg, int end, int value)
 {
     int mid;
     if(end >= beg)
@@ -867,7 +902,7 @@ int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *se
  * @param search_parameters registro de parâmetros.
  * @param rrns_size tamanho do vetor retornado.
  *
- * @return retorna um vetor contendo o(s) RRN(s) do(s) registro(s) que cumprar
+ * @return retorna um vetor contendo o(s) RRN(s) do(s) registro(s) que cumprir
  * os parâmetros e NULL, caso não seja encontrado nenhum registro.
  */
 int *type1_search_parameters_rrn(FILE *fp, reg_t1 *search_parameters, int *rrns_size)
@@ -1205,6 +1240,174 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
     fclose(index_fp);
 }
 
+// =====================================================================================================================
+
+/**
+ * @brief Verifica se um registro contendo parâmetros de busca tem o ID como
+ * único parâmetro.
+ * 
+ * @param search_parameters registro contendo parâmetros de busca;
+ * @return 1 quando o único parâmetro de busca é o ID e 0 quando não (int). 
+ */
+static int only_id(reg_t1 *search_parameters)
+{
+    if (search_parameters->id == -1) return 0;
+
+    if (search_parameters->year != -1) return 0;
+    if (search_parameters->qtt  != -1) return 0;
+    
+    if (search_parameters->state != NULL) return 0;
+    if (search_parameters->city  != NULL) return 0;
+    if (search_parameters->brand != NULL) return 0;
+    if (search_parameters->model != NULL) return 0;
+
+    return 1;   
+}
+
+/**
+ * @brief Atualiza um registro em um arquivo de dados, modificando os campos
+ * especificados.
+ * 
+ * @param fp ponteiro para o arquivo de dados;
+ * @param offset byte offset do registro que deve ser modificado;
+ * @param fields_to_update campos que devem ser atualizados.
+ */
+static void update_register(FILE *fp, long int offset, reg_t1 *fields_to_update, index_t1 *index, int index_size)
+{
+    fseek(fp, offset, SEEK_SET);
+    reg_t1 *reg = read_register_from_bin(fp);
+
+    if (fields_to_update->id != -1)
+    {
+        int pos = binarySearch_t1(index, 0, index_size - 1, reg->id);
+        
+        reg->id = fields_to_update->id;
+        index[pos].id = reg->id;
+    }
+
+    if (fields_to_update->year == -2)
+        reg->year = -1;
+    else if (fields_to_update->year != -1)
+        reg->year = fields_to_update->year;
+
+    if (fields_to_update->qtt == -2)
+        reg->qtt = -1;
+    if (fields_to_update->qtt != -1)
+        reg->qtt = fields_to_update->qtt;
+
+    if (fields_to_update->state != NULL)
+        reg->state = fields_to_update->state;
+
+    if (fields_to_update->city != NULL)
+    {
+        reg->city = fields_to_update->city;
+        reg->city_namesize = strlen(reg->city);
+    }
+    else if (fields_to_update->city_namesize == -2)
+    {
+        reg->city = NULL;
+        reg->city_namesize = 0;
+    }
+
+    if (fields_to_update->brand != NULL)
+    {
+        reg->brand = fields_to_update->brand;
+        reg->brand_namesize = strlen(reg->brand);
+    }
+    else if (fields_to_update->brand_namesize == -2)
+    {
+        reg->brand = NULL;
+        reg->brand_namesize = 0;
+    }
+
+    if (fields_to_update->model != NULL)
+    {
+        reg->model = fields_to_update->model;
+        reg->model_namesize = strlen(reg->model);
+    }
+    else if (fields_to_update->model_namesize == -2)
+    {
+        reg->model = NULL;
+        reg->model_namesize = 0;
+    }
+
+    fseek(fp, offset, SEEK_SET);
+    write_register(reg, fp);
+}
+
+static void update_by_search_parameters(FILE *fp, reg_t1 *search_parameters, reg_t1 *fields_to_update, index_t1 *index, int index_size)
+{
+    fseek(fp, 0, SEEK_END);
+    long int file_size = ftell(fp);
+
+    for (long int offset = HEADER_SIZE; offset < file_size; offset += REGISTER_SIZE)
+    {
+        fseek(fp, offset, SEEK_SET);
+        reg_t1 *reg = read_register_from_bin(fp);
+        if (verify_reg_t1(reg, search_parameters))
+            update_register(fp, offset, fields_to_update, index, index_size);
+    }
+}
+
+
+// =====================================================================================================================
+
+
+void update_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
+{
+    // Marcar arquivo de dados como inconsistente
+    fseek(data_fp, 0, SEEK_SET);
+    fwrite("0", sizeof(char), 1, data_fp);
+
+    int index_size;
+    index_t1 *index = type1_index_disk_to_ram(&index_size, index_fp);
+
+    for (int i = 0; i < n_registers; i++)
+    {
+        reg_t1 *search_parameters = get_search_parameters();
+        reg_t1 *fields_to_update = get_search_parameters();
+
+        //printf("\n\n\nparametros de busca:\n");
+        //print_register_info(search_parameters);
+
+        if (only_id(search_parameters))
+        {
+            int pos = binarySearch_t1(index, 0, index_size - 1, search_parameters->id);
+            int rrn = index[pos].rrn;
+            
+            if (rrn != -1)
+            {
+                long int offset = HEADER_SIZE + (rrn * REGISTER_SIZE);
+                update_register(data_fp, offset, fields_to_update, index, index_size);
+            }
+        }
+        else
+        {
+            update_by_search_parameters(data_fp, search_parameters, fields_to_update, index, index_size);
+        }
+        
+        //printf("\ncampos para atualizar:\n");
+        //print_register_info(fields_to_update);   
+    }
+
+    // Atualizar índice
+    type1_index_ram_to_disk(index, index_size, index_fp);
+
+    // Marcar o arquivo de índice como consistente
+    fseek(index_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, index_fp);
+    fclose(index_fp);
+
+    // Marcar arquivo de dados como consistente
+    fseek(data_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, data_fp);
+}
+
+
+
+
+
+// =====================================================================================================================
 
 /**
  * @brief APENAS DEBUG -> tirar da versão final do trabalho
