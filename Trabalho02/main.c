@@ -159,7 +159,7 @@ int main()
             }
             else if (file_type[4] == '2')
             {
-                //
+                type2_update_set_where(input_fp, index_file);
             }
         break;
     }
