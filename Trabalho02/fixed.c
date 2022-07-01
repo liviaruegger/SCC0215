@@ -3,12 +3,12 @@
  * @author Ana Lívia Ruegger Saldanha (N.USP 8586691)
  * @author André Kenji Hidaka Matsumoto (N. USP 12542689)
  * @brief  SCC0215 - Organização de Arquivos
- *         Trabalho 01
+ *         Trabalho 02
  *
  *         Módulo que trabalha com arquivos Tipo 1 (Arquivo de Dados para
  *         Registros de Tamanho Fixo)
  *
- * @date   2022-05-26
+ * @date   2022-06-29
  *
  */
 
@@ -236,7 +236,7 @@ static void write_register(reg_t1 *reg, FILE *output)
         bytes_written++;
     }
 
-    free_register(reg);
+    // free_register(reg);
 }
 
 /**
@@ -427,7 +427,7 @@ static reg_t1 *get_search_parameters()
 
     int n;
     scanf(" %d", &n);
-    getchar(); // Consome o '\n'
+    getchar(); // Consome o '\n' ou espaço
 
     for (int i = 0; i < n; i++)
     {
@@ -438,12 +438,47 @@ static reg_t1 *get_search_parameters()
         if (c == '"')
         {
             field_content = read_until(stdin, '"');
-            getchar(); // Consome o '\n'
+            getchar(); // Consome o '\n' ou espaço
 
             if      (strcmp(field_name, "sigla")  == 0) reg->state = field_content;
             else if (strcmp(field_name, "cidade") == 0) reg->city  = field_content;
             else if (strcmp(field_name, "marca")  == 0) reg->brand = field_content;
             else if (strcmp(field_name, "modelo") == 0) reg->model = field_content;
+        }
+        else if (c == 'N') // NULO
+        {
+            read_word(stdin); // Descarta leitura "ULO "
+            field_content = NULL;
+
+            if (strcmp(field_name, "sigla") == 0)
+            {
+                reg->state = malloc(sizeof(char) * 2);
+                reg->state[0] = '$';
+                reg->state[1] = '$';
+            }
+            else if (strcmp(field_name, "cidade") == 0)
+            {
+                reg->city  = field_content;
+                reg->city_namesize = -2;            
+            }
+            else if (strcmp(field_name, "marca") == 0)
+            {
+                reg->brand = field_content;
+                reg->brand_namesize = -2;
+            }
+            else if (strcmp(field_name, "modelo") == 0)
+            {
+                reg->model = field_content;
+                reg->model_namesize = -2;
+            }
+            else if (strcmp(field_name, "ano") == 0)
+            {
+                reg->year = -2; // Identifica para sobrescrever
+            }
+            else if (strcmp(field_name, "qtt") == 0)
+            {
+                reg->qtt  = -2; // Identifica para sobrescrever
+            }
         }
         else
         {
@@ -611,7 +646,7 @@ void insertionSort_t1(index_t1 *index, int size)
  *
  * @return posição do elemento ou -1, caso não seja encontrado.
  */
-int binarySearch_t1 (index_t1 *index, int beg, int end, int value)
+int binarySearch_t1(index_t1 *index, int beg, int end, int value)
 {
     int mid;
     if(end >= beg)
@@ -867,7 +902,7 @@ int *type1_search_id (FILE *data_fp, index_t1 *index, int index_size, reg_t1 *se
  * @param search_parameters registro de parâmetros.
  * @param rrns_size tamanho do vetor retornado.
  *
- * @return retorna um vetor contendo o(s) RRN(s) do(s) registro(s) que cumprar
+ * @return retorna um vetor contendo o(s) RRN(s) do(s) registro(s) que cumprir
  * os parâmetros e NULL, caso não seja encontrado nenhum registro.
  */
 int *type1_search_parameters_rrn(FILE *fp, reg_t1 *search_parameters, int *rrns_size)
@@ -952,6 +987,18 @@ static int type1_get_top(FILE *fp)
     fseek(fp, 1, SEEK_SET);
     fread(&top, sizeof(int), 1, fp);
     return top;
+}
+
+/**
+ * @brief Atualiza o topo escrito no cabeçalho do arquivo.
+ * 
+ * @param fp ponteiro para o arquivo;
+ * @param new_top RRN que deve ser colocado no campo 'topo' do cabeçalho.
+ */
+static void type1_update_top(FILE *fp, int new_top)
+{
+    fseek(fp, 1, SEEK_SET);
+    fwrite(&new_top, sizeof(int), 1, fp);
 }
 
 /**
@@ -1136,6 +1183,8 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
     int index_size, rrn;
     index_t1 *index = type1_index_disk_to_ram(&index_size, index_fp);
 
+    int pop_count = 0;
+
     for (int i = 0; i < n_registers; i++)
     {
         reg_t1 *reg = read_register_from_stdin();
@@ -1159,11 +1208,13 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
 
             int next; // Novo topo
             fread(&next, sizeof(int), 1, data_fp);
-            type1_update_stack(data_fp, &next, next);
+            type1_update_top(data_fp, next);
 
             offset = HEADER_SIZE + (top * REGISTER_SIZE);
             fseek(data_fp, offset, SEEK_SET);
             rrn = top;
+
+            pop_count++;
         }
 
         int id = reg->id;
@@ -1180,6 +1231,8 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
 
     type1_index_ram_to_disk(index, index_size, index_fp);
 
+    type1_update_nroRegRem(data_fp, (-1) * pop_count);
+
     // Marcar o arquivo de índice como consistente
     fseek(index_fp, 0, SEEK_SET);
     fwrite("1", sizeof(char), 1, index_fp);
@@ -1187,32 +1240,174 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
     fclose(index_fp);
 }
 
+/**
+ * @brief Verifica se um registro contendo parâmetros de busca tem o ID como
+ * único parâmetro.
+ * 
+ * @param search_parameters registro contendo parâmetros de busca;
+ * @return 1 quando o único parâmetro de busca é o ID e 0 quando não (int). 
+ */
+static int only_id(reg_t1 *search_parameters)
+{
+    if (search_parameters->id == -1) return 0;
+
+    if (search_parameters->year != -1) return 0;
+    if (search_parameters->qtt  != -1) return 0;
+    
+    if (search_parameters->state != NULL) return 0;
+    if (search_parameters->city  != NULL) return 0;
+    if (search_parameters->brand != NULL) return 0;
+    if (search_parameters->model != NULL) return 0;
+
+    return 1;   
+}
 
 /**
- * @brief APENAS DEBUG -> tirar da versão final do trabalho
- *
- * @param filename
+ * @brief Atualiza um registro em um arquivo de dados, modificando os campos
+ * especificados.
+ * 
+ * @param fp ponteiro para o arquivo de dados;
+ * @param offset byte offset do registro que deve ser modificado;
+ * @param fields_to_update campos que devem ser atualizados.
+ * @param index ponteiro para o índice (RAM);
+ * @param index_size tamanho do índice.
  */
-void read_and_print_index_file(char *filename)
+static void update_register(FILE *fp, long int offset, reg_t1 *fields_to_update, index_t1 *index, int index_size)
 {
-    FILE *fp = fopen(filename, "rb");
+    fseek(fp, offset, SEEK_SET);
+    reg_t1 *reg = read_register_from_bin(fp);
 
-    fseek(fp, 0, SEEK_SET);
-    char c = fgetc(fp);
-
-    int size = 0;
-
-    if (c == '1')
+    if (fields_to_update->id != -1)
     {
-        int id, rrn;
-        while(fread(&id, sizeof(int), 1, fp) == 1)
-        {
-            size++;
-            fread(&rrn, sizeof(int), 1, fp);
+        int pos = binarySearch_t1(index, 0, index_size - 1, reg->id);
+        
+        reg->id = fields_to_update->id;
+        index[pos].id = reg->id;
+    }
 
-            printf("Line %d:\tID: %d\tRRN: %d\n", size, id, rrn);
+    if (fields_to_update->year == -2)
+        reg->year = -1;
+    else if (fields_to_update->year != -1)
+        reg->year = fields_to_update->year;
+
+    if (fields_to_update->qtt == -2)
+        reg->qtt = -1;
+    if (fields_to_update->qtt != -1)
+        reg->qtt = fields_to_update->qtt;
+
+    if (fields_to_update->state != NULL)
+        reg->state = fields_to_update->state;
+
+    if (fields_to_update->city != NULL)
+    {
+        reg->city = fields_to_update->city;
+        reg->city_namesize = strlen(reg->city);
+    }
+    else if (fields_to_update->city_namesize == -2)
+    {
+        reg->city = NULL;
+        reg->city_namesize = 0;
+    }
+
+    if (fields_to_update->brand != NULL)
+    {
+        reg->brand = fields_to_update->brand;
+        reg->brand_namesize = strlen(reg->brand);
+    }
+    else if (fields_to_update->brand_namesize == -2)
+    {
+        reg->brand = NULL;
+        reg->brand_namesize = 0;
+    }
+
+    if (fields_to_update->model != NULL)
+    {
+        reg->model = fields_to_update->model;
+        reg->model_namesize = strlen(reg->model);
+    }
+    else if (fields_to_update->model_namesize == -2)
+    {
+        reg->model = NULL;
+        reg->model_namesize = 0;
+    }
+
+    fseek(fp, offset, SEEK_SET);
+    write_register(reg, fp);
+}
+
+/**
+ * @brief Encontra registros que satisfazem os critérios de busca em 'search_parameters'
+ * e os atualiza com os campos/valores identificados em 'fields_to_update'.
+ * 
+ * @param fp ponteiro para o arquivo de dados que deve ser atualizado;
+ * @param search_parameters struct com parâmetros de busca;
+ * @param fields_to_update campos/valores para atualizar;
+ * @param index ponteiro para o índice (RAM);
+ * @param index_size tamanho do índice.
+ */
+static void update_by_search_parameters(FILE *fp, reg_t1 *search_parameters, reg_t1 *fields_to_update, index_t1 *index, int index_size)
+{
+    fseek(fp, 0, SEEK_END);
+    long int file_size = ftell(fp);
+
+    for (long int offset = HEADER_SIZE; offset < file_size; offset += REGISTER_SIZE)
+    {
+        fseek(fp, offset, SEEK_SET);
+        reg_t1 *reg = read_register_from_bin(fp);
+        if (verify_reg_t1(reg, search_parameters))
+            update_register(fp, offset, fields_to_update, index, index_size);
+    }
+}
+
+/**
+ * @brief Atualiza registros no arquivo de dados segundo especificações lidas
+ * da entrada padrão, que identificam quais os registros a serem modificados e
+ * quais os campos/valores a serem atualizados.
+ * 
+ * @param data_fp ponteiro para o arquivo de dados;
+ * @param index_fp ponteiro para o arquivo de índice;
+ * @param n_registers número de buscas a serem feitas.
+ */
+void update_registers_type1(FILE *data_fp, FILE *index_fp, int n)
+{
+    // Marcar arquivo de dados como inconsistente
+    fseek(data_fp, 0, SEEK_SET);
+    fwrite("0", sizeof(char), 1, data_fp);
+
+    int index_size;
+    index_t1 *index = type1_index_disk_to_ram(&index_size, index_fp);
+
+    for (int i = 0; i < n; i++)
+    {
+        reg_t1 *search_parameters = get_search_parameters();
+        reg_t1 *fields_to_update = get_search_parameters();
+
+        if (only_id(search_parameters))
+        {
+            int pos = binarySearch_t1(index, 0, index_size - 1, search_parameters->id);
+            int rrn = index[pos].rrn;
+            
+            if (rrn != -1)
+            {
+                long int offset = HEADER_SIZE + (rrn * REGISTER_SIZE);
+                update_register(data_fp, offset, fields_to_update, index, index_size);
+            }
+        }
+        else
+        {
+            update_by_search_parameters(data_fp, search_parameters, fields_to_update, index, index_size);
         }
     }
 
-    fclose(fp);
+    // Atualizar índice
+    type1_index_ram_to_disk(index, index_size, index_fp);
+
+    // Marcar o arquivo de índice como consistente
+    fseek(index_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, index_fp);
+    fclose(index_fp);
+
+    // Marcar arquivo de dados como consistente
+    fseek(data_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, data_fp);
 }

@@ -9,6 +9,7 @@
  *         Registros de Tamanho Variável)
  *
  * @date   2022-06-30
+
  *
  */
 
@@ -1006,16 +1007,6 @@ long int *type2_search_parameters_offset(FILE *fp, s_reg_t2 *reg_s, int *size)
     long int offset;
     int verifier, size_skip;
     reg_t2 *reg;
-
-    /*
-    fseek(fp, 0, SEEK_SET);
-    fread(&c, sizeof(char), 1, fp);
-
-    if (c == '0')
-    {
-        return NULL;
-    }*/
-
     fseek(fp, 190, SEEK_SET); // Move o pointeiro do arquivo para o primeiro registro.
 
     offset = ftell(fp); // Armazena o offset do registro que será lido
@@ -1161,9 +1152,6 @@ void type2_delete_from (FILE *data_fp, char *index_name)
     update_header_status(data_fp);
 }
 
-//==============================================================================
-
-
 /**
  * @brief Lê da entrada padrão os dados de um registro e insere em uma struct
  * register_type2.
@@ -1288,6 +1276,17 @@ static reg_t2 *read_register_from_stdin()
     return reg;
 }
 
+/**
+ * @brief Insere um registro no registro de dados e atualiza o vetor de índices.
+ *
+ * @param data_fp ponteiro para o arquivo de dados.
+ * @param reg ponteiro para o registro a ser inserido.
+ * @param index ponteiro para o vetor de índices.
+ * @param index_size ponteiro para o inteiro que armazena o tamanho do vetor.
+ * @param offset valor que será atrelado ao id.
+ *
+ * @return ponteiro para o vetor de índices (t2_index *).
+ */
 static t2_index *type2_insert_register(FILE *data_fp, reg_t2 *reg, t2_index *index, int *index_size, long int offset)
 {
     t2_index *aux;
@@ -1301,6 +1300,17 @@ static t2_index *type2_insert_register(FILE *data_fp, reg_t2 *reg, t2_index *ind
     return aux;
 }
 
+/**
+ * @brief Insere um registro no final do registro de dados e atualiza o vetor de
+ * índices.
+ *
+ * @param data_fp ponteiro para o arquivo de dados.
+ * @param reg ponteiro para o registro a ser inserido.
+ * @param index ponteiro para o vetor de índices.
+ * @param index_size ponteiro para o inteiro que armazena o tamanho do vetor.
+ *
+ * @return ponteiro para o vetor de índices (t2_index *).
+ */
 static t2_index *type2_reg_insert_end (FILE *data_fp, reg_t2 *reg, t2_index *index, int *index_size)
 {
     long int new_offset, offset;
@@ -1317,6 +1327,17 @@ static t2_index *type2_reg_insert_end (FILE *data_fp, reg_t2 *reg, t2_index *ind
     return index;
 }
 
+/**
+ * @brief Lê n_registers da entrada padrão e insere eles no 
+ *
+ * @param data_fp ponteiro para o arquivo de dados.
+ * @param reg ponteiro para o registro a ser inserido.
+ * @param index ponteiro para o vetor de índices.
+ * @param index_size ponteiro para o inteiro que armazena o tamanho do vetor.
+ * @param offset valor que será atrelado ao id.
+ *
+ * @return ponteiro para o vetor de índices (t2_index *).
+ */
 void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
 {
     int index_size, novos_removidos = 0;
@@ -1335,7 +1356,6 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
         if(reg == NULL) break;
 
         long int head = type2_get_head(data_fp);
-        //printf("head = %ld\n", head);
 
         if (head != -1)
         {
@@ -1344,7 +1364,6 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
             fread(&old_size, sizeof(int), 1, data_fp);
 
             size_diff = reg->register_size - old_size;
-            //printf("size_diff = %d\n", size_diff);
 
             if (size_diff <= 0) {
                 long int prox;
@@ -1353,7 +1372,6 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
                 reg->register_size = old_size;
                 fseek(data_fp, head, SEEK_SET);
 
-                printf("index_size = %d\n", index_size);
                 index = type2_insert_register(data_fp, reg, index, &index_size, head);
 
                 for (int j = size_diff; j < 0; j++) {
@@ -1373,18 +1391,6 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
         {
             // Adiciona no fim do arquivo
             index = type2_reg_insert_end (data_fp, reg, index, &index_size);
-
-            /*
-            int offset = HEADER_SIZE + (top * REGISTER_SIZE) + 1;
-            fseek(data_fp, offset, SEEK_SET);
-
-            int next; // Novo topo
-            fread(&next, sizeof(int), 1, data_fp);
-            type1_update_stack(data_fp, &next, next);
-
-            offset = HEADER_SIZE + (top * REGISTER_SIZE);
-            fseek(data_fp, offset, SEEK_SET);
-            rrn = top;*/
         }
        if(reg != NULL) {
            free(reg);

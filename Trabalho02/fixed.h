@@ -3,12 +3,12 @@
  * @author Ana Lívia Ruegger Saldanha (N.USP 8586691)
  * @author André Kenji Hidaka Matsumoto (N. USP 12542689)
  * @brief  SCC0215 - Organização de Arquivos
- *         Trabalho 01
+ *         Trabalho 02
  *
  *         Módulo que trabalha com arquivos Tipo 1 (Arquivo de Dados para
  *         Registros de Tamanho Fixo)
  *
- * @date   2022-05-26
+ * @date   2022-06-29
  *
  */
 
@@ -35,3 +35,6 @@ void type1_delete_from (FILE *data_fp, char *index_name);
 
 // Funcionalidade 7
 void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers);
+
+// Funcionalidade 8
+void update_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers);

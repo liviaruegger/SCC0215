@@ -3,9 +3,9 @@
  * @author Ana Lívia Ruegger Saldanha (N.USP 8586691)
  * @author André Kenji Hidaka Matsumoto (N. USP 12542689)
  * @brief  SCC0215 - Organização de Arquivos
- *         Trabalho 01
+ *         Trabalho 02
  *
- * @date   2022-05-26
+ * @date   2022-06-29
  *
  */
 
@@ -26,6 +26,7 @@ int main()
     char *output_file = NULL;
     char *index_file = NULL;
     FILE *output_fp = NULL;
+    FILE *index_fp = NULL;
 
     FILE *input_fp = NULL;
     if (func == 1) input_fp = fopen(input_file, "r");
@@ -113,7 +114,7 @@ int main()
             index_file = read_word(stdin);
             if (file_type[4] == '1')
             {
-                type1_delete_from (input_fp, index_file);
+                type1_delete_from(input_fp, index_file);
             }
             else if (file_type[4] == '2')
             {
@@ -123,7 +124,7 @@ int main()
 
         case 7:
             index_file = read_word(stdin);
-            FILE *index_fp = fopen(index_file, "r+b");
+            index_fp = fopen(index_file, "r+b");
             scanf("%d", &n);
 
             if (!index_fp)
@@ -140,7 +141,7 @@ int main()
                 {
                     insert_new_registers_type1(input_fp, index_fp, n);
                 }
-                else if (file_type[4] == '2') // TODO
+                else if (file_type[4] == '2')
                 {
                     insert_new_registers_type2(input_fp, index_fp, n);
                 }
@@ -149,9 +150,12 @@ int main()
 
         case 8:
             index_file = read_word(stdin);
+            index_fp = fopen(index_file, "r+b");
+            scanf("%d", &n);
+
             if (file_type[4] == '1')
             {
-
+                update_registers_type1(input_fp, index_fp, n);
             }
             else if (file_type[4] == '2')
             {
