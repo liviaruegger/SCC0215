@@ -214,7 +214,6 @@ static void type2_write_register(reg_t2 *reg, FILE *output)
     // Se tiver cidade:
     if (reg->city_namesize != -1)
     {
-        printf("com cidade\n");
         fwrite(&reg->city_namesize, sizeof(int), 1, output);
         fwrite(reg->codC5, sizeof(char), 1, output);
         fwrite(reg->city, sizeof(char), reg->city_namesize, output);
@@ -227,7 +226,6 @@ static void type2_write_register(reg_t2 *reg, FILE *output)
     // Se tiver marca:
     if (reg->brand_namesize != -1)
     {
-        printf("com marca\n");
         fwrite(&reg->brand_namesize, sizeof(int), 1, output);
         fwrite(reg->codC6, sizeof(char), 1, output);
         fwrite(reg->brand, sizeof(char), reg->brand_namesize, output);
@@ -240,7 +238,6 @@ static void type2_write_register(reg_t2 *reg, FILE *output)
     // Se tiver modelo:
     if (reg->model_namesize != -1)
     {
-        printf("com modelo\n");
         fwrite(&reg->model_namesize, sizeof(int), 1, output);
         fwrite(reg->codC7, sizeof(char), 1, output);
         fwrite(reg->model, sizeof(char), reg->model_namesize, output);
@@ -249,7 +246,6 @@ static void type2_write_register(reg_t2 *reg, FILE *output)
         reg->codC7 = NULL;
         reg->model = NULL;
     }
-    printf("\n");
 }
 
 /**
@@ -395,18 +391,12 @@ reg_t2 *t2_file_to_struct(FILE *fp)
     int current_size = 22;
     while (reg->register_size - current_size > 0)
     {
-        printf("reg->register_size - current_size = %d\n", reg->register_size - current_size);
-        //printf("%ld\n", ftell(fp));
-        //char c = fgetc(fp);
-        //if (c == '$') break;
-        //else ungetc(c, fp);
 
         int size;
         char *cod = calloc(2, sizeof(char));
 
         fread(&size, sizeof(int), 1, fp);
         fread(cod, sizeof(char), 1, fp);
-        printf("cod = %s\n", cod);
         if(cod[0] != '0' && cod[0] != '1' && cod[0] != '2') break;
 
 
@@ -1033,14 +1023,12 @@ long int *type2_search_parameters_offset(FILE *fp, s_reg_t2 *reg_s, int *size)
         }
         else
         {
-            printf("removido\n");
             fread(&size_skip, sizeof(int), 1, fp);
             fseek(fp, size_skip, SEEK_CUR);
         }
         offset = ftell(fp);
         c = fgetc(fp);
     }
-    printf("fim\n");
 
     return offsets;
 }
@@ -1317,7 +1305,6 @@ static t2_index *type2_reg_insert_end (FILE *data_fp, reg_t2 *reg, t2_index *ind
     fseek(data_fp, 0, SEEK_END);
     offset = ftell(data_fp);
 
-    printf("index_size = %d\n", *index_size);
     index = type2_insert_register(data_fp, reg, index, index_size, offset);
 
     new_offset = ftell(data_fp);
@@ -1411,32 +1398,14 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
     fclose(index_fp);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-//==============================================================================
-
-void print_search_reg_t2(s_reg_t2 *reg)
-{
-    printf("--- Registro ---\n");
-    printf("id = %d\n", reg->id);
-    printf("year = %d\n", reg->year);
-    printf("qtt = %d\n", reg->qtt);
-    if(reg->state != NULL) printf("state = %s\n", reg->state);
-    if(reg->city != NULL) printf("city = %s\n", reg->city);
-    if(reg->brand != NULL) printf("brand = %s\n", reg->brand);
-    if(reg->model != NULL) printf("model = %s\n", reg->model);
-    printf("\n");
-}
-
+/**
+ * @brief Verifica se o registro precisa ser atualizado
+ *
+ * @param original ponteiro registro original.
+ * @param updated ponteiro para o registro que contem as alterações.
+ *
+ * @return retorna 0 caso ele precise ser atualizado, e 0 caso não.
+ */
 int already_updated (reg_t2 *original, s_reg_t2 *updated)
 {
     if(updated->city != NULL)
@@ -1457,11 +1426,20 @@ int already_updated (reg_t2 *original, s_reg_t2 *updated)
     return 1;
 }
 
+/**
+ * @brief Calcula a variação de tamanho quando o registro sofre atualizações nos
+ * campos.
+ *
+ * @param original ponteiro registro original.
+ * @param updated ponteiro para o registro que contém as alterações.
+ *
+ * @return retorna a diferença de tamanhos. (Positivo caso o original seja maior
+ * e negativo caso seja menor)
+ */
 int type2_size_diff (reg_t2 *original, s_reg_t2 *updated)
 {
     int size_diff = 0;
     print_t2_register(original);
-    print_search_reg_t2(updated);
 
     if(updated->city != NULL)
         if(original->city_namesize != -1)
@@ -1484,6 +1462,14 @@ int type2_size_diff (reg_t2 *original, s_reg_t2 *updated)
     return size_diff;
 }
 
+/**
+ * @brief Atualiza um registro com as alterações.
+ *
+ * @param original ponteiro registro original.
+ * @param updated ponteiro para o registro que contem as alterações.
+ *
+ * @return retorna registro alterado (reg_t2 *).
+ */
 reg_t2 *update_reg (reg_t2 *original, s_reg_t2 *updates)
 {
     if (updates->id != -1) original->id = updates->id;
@@ -1556,30 +1542,37 @@ reg_t2 *update_reg (reg_t2 *original, s_reg_t2 *updates)
     return original;
 }
 
+/**
+ * @brief Atualiza os registros com base em um vetor que armazena os offsets deles.
+ *
+ * @param fp ponteiro para o arquivo de dados.
+ * @param ind ponteiro para o vetor de índices.
+ * @param size_ind tamanho do vetor de índices.
+ * @param offsets vetor de offsets dos registros a serem removidos.
+ * @param size_off tamanho do vetor de offsets.
+ * @param head offset no topo da pilha.
+ * @param qnt quantidade de novos registros removidos.
+ * @param reg_upd registro que contém as alterações.
+ *
+ * @return retorna o vetor de índices atualizado (t2_index *).
+ */
 t2_index *type2_update (FILE *fp, t2_index *ind, int *size_ind, long int *offsets, int size_off, long int *head, int *qnt, s_reg_t2 *reg_upd)
 {
     for (int i = 0; i < size_off; i++)
     {
-        printf("offset = %ld\n", offsets[i]);
         fseek(fp, offsets[i] + 1, SEEK_SET);
         reg_t2 *original = t2_file_to_struct(fp);
-        /*
-        printf("original:\n");
-        print_t2_register(original);*/
         if (already_updated(original, reg_upd) == 0)
         {
             int size_diff = type2_size_diff (original, reg_upd);
-            printf("\n\n--- size_diff = %d ---\n", size_diff);
 
             original = update_reg(original, reg_upd);
-            //print_t2_register(original);
 
             if(size_diff >= 0)
             {
                 fseek(fp, offsets[i], SEEK_SET);
 
                 type2_write_register(original, fp);
-                printf("apos escrita = %ld\n", ftell(fp));
 
                 for (int j = 0; j < abs(size_diff); j++) {
                     fwrite("$", sizeof(char), 1, fp);
@@ -1603,9 +1596,6 @@ t2_index *type2_update (FILE *fp, t2_index *ind, int *size_ind, long int *offset
                     fread(&bigger_size, sizeof(int), 1, fp);
                     fread(&next, sizeof(long int), 1, fp);
 
-                    printf("bigger_size = %d\n", bigger_size);
-                    printf("original->register_size = %d\n", original->register_size);
-
                     if (original->register_size > bigger_size)
                     {
                         ind = type2_reg_insert_end(fp, original, ind, size_ind);
@@ -1622,27 +1612,26 @@ t2_index *type2_update (FILE *fp, t2_index *ind, int *size_ind, long int *offset
                         *head = next;
                     }
                 }
-
-
-
-
-
-
             }
         }
-        //free_reg_t2(original);
     }
     return ind;
 }
 
+/**
+ * @brief Lê da entrada padrão os critérios de busca e de atualização dos regis-
+ * tros, em seguida, atualiza eles, realizando as devidas operações de inserção
+ * e remoções, caso necessário.
+ *
+ * @param data_fp ponteiro para o arquivo de dados.
+ * @param index_name ponteiro para a string com o nome do arquivo de índices.
+ */
 void type2_update_set_where (FILE *data_fp, char *index_name)
 {
     FILE *index_fp = fopen(index_name, "r+b");
     int index_size, n, off_size, qnt = 0;
     t2_index *index = type2_index_disk_to_ram (index_fp, &index_size);
-    //print_index(index_fp);
     long int head = type2_get_head(data_fp);
-    printf("head = %ld\n", head);
     long int *offsets;
 
 
@@ -1655,22 +1644,16 @@ void type2_update_set_where (FILE *data_fp, char *index_name)
         s_reg_t2 *reg_search = get_reg_t2_search_parameters();
         s_reg_t2 *reg_update = get_reg_t2_search_parameters();
 
-        //print_search_reg_t2(reg_search);
-        //print_search_reg_t2(reg_update);
-
         if(reg_search->id != -1)
         {
             offsets = type2_search_id (data_fp, index, index_size, reg_search, &off_size);
         }
         else
         {
-            printf("sem id\n");
             offsets = type2_search_parameters_offset(data_fp, reg_search, &off_size);
         }
-        printf("off_size = %d\n", off_size);
         index = type2_update (data_fp, index, &index_size, offsets, off_size, &head, &qnt, reg_update);
 
-        //printf("index_size = %d\n", index_size);
         if (offsets != NULL) free(offsets);
         free_s_reg_t2(reg_update);
         free_s_reg_t2(reg_search);
