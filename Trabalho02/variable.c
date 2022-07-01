@@ -3,12 +3,12 @@
  * @author Ana Lívia Ruegger Saldanha (N.USP 8586691)
  * @author André Kenji Hidaka Matsumoto (N. USP 12542689)
  * @brief  SCC0215 - Organização de Arquivos
- *         Trabalho 01
+ *         Trabalho 02
  *
  *         Módulo que trabalha com arquivos Tipo 2 (Arquivo de Dados para
  *         Registros de Tamanho Variável)
  *
- * @date   2022-05-26
+ * @date   2022-06-30
  *
  */
 
@@ -57,22 +57,6 @@ typedef struct register_type2_index
     int id;
     long int offset;
 } t2_index;
-
-
-void print_index(FILE *fp)
-{
-    fseek(fp, 1, SEEK_SET);
-
-    int id;
-    long int offset;
-
-    while (fread(&id, sizeof(int), 1, fp) == 1)
-    {
-        fread(&offset, sizeof(long int), 1, fp);
-        printf("%d = %ld\n", id, offset);
-    }
-
-}
 
 /**
  * @brief Cria um arquivo binário de dados do Tipo 2 e insere os dados de
@@ -229,32 +213,42 @@ static void type2_write_register(reg_t2 *reg, FILE *output)
     // Se tiver cidade:
     if (reg->city_namesize != -1)
     {
+        printf("com cidade\n");
         fwrite(&reg->city_namesize, sizeof(int), 1, output);
         fwrite(reg->codC5, sizeof(char), 1, output);
         fwrite(reg->city, sizeof(char), reg->city_namesize, output);
         free(reg->codC5);
         free(reg->city);
+        reg->codC5 = NULL;
+        reg->city = NULL;
     }
 
     // Se tiver marca:
     if (reg->brand_namesize != -1)
     {
+        printf("com marca\n");
         fwrite(&reg->brand_namesize, sizeof(int), 1, output);
         fwrite(reg->codC6, sizeof(char), 1, output);
         fwrite(reg->brand, sizeof(char), reg->brand_namesize, output);
         free(reg->codC6);
         free(reg->brand);
+        reg->codC5 = NULL;
+        reg->brand = NULL;
     }
 
     // Se tiver modelo:
     if (reg->model_namesize != -1)
     {
+        printf("com modelo\n");
         fwrite(&reg->model_namesize, sizeof(int), 1, output);
         fwrite(reg->codC7, sizeof(char), 1, output);
         fwrite(reg->model, sizeof(char), reg->model_namesize, output);
         free(reg->codC7);
         free(reg->model);
+        reg->codC7 = NULL;
+        reg->model = NULL;
     }
+    printf("\n");
 }
 
 /**
@@ -389,19 +383,31 @@ reg_t2 *t2_file_to_struct(FILE *fp)
     fread(&reg->qtt,            sizeof(int), 1, fp);
     fread(reg->state,           sizeof(char), 2, fp);
 
+    reg->city = NULL;
     reg->city_namesize = -1;
+    reg->brand = NULL;
     reg->brand_namesize = -1;
+    reg->model = NULL;
     reg->model_namesize = -1;
 
     // sizeof(next + id + year + qtt + state)
     int current_size = 22;
-    while (reg->register_size - current_size != 0)
+    while (reg->register_size - current_size > 0)
     {
+        printf("reg->register_size - current_size = %d\n", reg->register_size - current_size);
+        //printf("%ld\n", ftell(fp));
+        //char c = fgetc(fp);
+        //if (c == '$') break;
+        //else ungetc(c, fp);
+
         int size;
         char *cod = calloc(2, sizeof(char));
 
         fread(&size, sizeof(int), 1, fp);
         fread(cod, sizeof(char), 1, fp);
+        printf("cod = %s\n", cod);
+        if(cod[0] != '0' && cod[0] != '1' && cod[0] != '2') break;
+
 
         // codC5 - Cidade
         if (strcmp(cod, "0") == 0)
@@ -648,7 +654,7 @@ void search_by_parameters_type2(FILE *fp)
             else if (verifier == 1)
             {
                 found = 'y';
-                print_t2_register(reg);
+                //print_t2_register(reg);
                 free_reg_t2(reg);
             }
 
@@ -656,7 +662,7 @@ void search_by_parameters_type2(FILE *fp)
             else if (verifier == 2)
             {
                 found = 'y';
-                print_t2_register(reg);
+                //print_t2_register(reg);
                 free_reg_t2(reg);
                 // Como o id é único, não precisamos percorrer novamente
                 break;
@@ -1001,13 +1007,14 @@ long int *type2_search_parameters_offset(FILE *fp, s_reg_t2 *reg_s, int *size)
     int verifier, size_skip;
     reg_t2 *reg;
 
+    /*
     fseek(fp, 0, SEEK_SET);
     fread(&c, sizeof(char), 1, fp);
 
     if (c == '0')
     {
         return NULL;
-    }
+    }*/
 
     fseek(fp, 190, SEEK_SET); // Move o pointeiro do arquivo para o primeiro registro.
 
@@ -1019,10 +1026,11 @@ long int *type2_search_parameters_offset(FILE *fp, s_reg_t2 *reg_s, int *size)
         {
             // Le o registro do arquivo binario e armazena na struct
             reg = t2_file_to_struct(fp);
+            //print_t2_register(reg);
             // Verifica os filtros lidos da entrada com os valores da struct
+
             verifier = verify_reg_t2(reg, reg_s);
             free_reg_t2(reg);
-
             if (verifier != 0)
             {
                 *size = *size + 1;
@@ -1034,12 +1042,14 @@ long int *type2_search_parameters_offset(FILE *fp, s_reg_t2 *reg_s, int *size)
         }
         else
         {
+            printf("removido\n");
             fread(&size_skip, sizeof(int), 1, fp);
             fseek(fp, size_skip, SEEK_CUR);
         }
         offset = ftell(fp);
         c = fgetc(fp);
     }
+    printf("fim\n");
 
     return offsets;
 }
@@ -1262,7 +1272,7 @@ static reg_t2 *read_register_from_stdin()
         reg->register_size += sizeof(reg->model_namesize);
         reg->model = model;
         reg->register_size += reg->model_namesize;
-        reg->codC7 = malloc(2 * sizeof(char));
+        reg->codC7 = calloc(2, sizeof(char));
         reg->codC7[0] = '2';
         reg->codC7[1] = '\0';
         reg->register_size += 1;
@@ -1280,13 +1290,15 @@ static reg_t2 *read_register_from_stdin()
 
 static t2_index *type2_insert_register(FILE *data_fp, reg_t2 *reg, t2_index *index, int *index_size, long int offset)
 {
+    t2_index *aux;
+
     type2_write_register(reg, data_fp);
     *index_size = *index_size + 1;
-    index = realloc(index, *index_size * sizeof(t2_index));
-    index[*index_size - 1].id = reg->id;
-    index[*index_size - 1].offset = offset;
+    aux = realloc(index, *index_size * sizeof(t2_index));
+    aux[*index_size - 1].id = reg->id;
+    aux[*index_size - 1].offset = offset;
 
-    return index;
+    return aux;
 }
 
 static t2_index *type2_reg_insert_end (FILE *data_fp, reg_t2 *reg, t2_index *index, int *index_size)
@@ -1295,6 +1307,7 @@ static t2_index *type2_reg_insert_end (FILE *data_fp, reg_t2 *reg, t2_index *ind
     fseek(data_fp, 0, SEEK_END);
     offset = ftell(data_fp);
 
+    printf("index_size = %d\n", *index_size);
     index = type2_insert_register(data_fp, reg, index, index_size, offset);
 
     new_offset = ftell(data_fp);
@@ -1340,6 +1353,7 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
                 reg->register_size = old_size;
                 fseek(data_fp, head, SEEK_SET);
 
+                printf("index_size = %d\n", index_size);
                 index = type2_insert_register(data_fp, reg, index, &index_size, head);
 
                 for (int j = size_diff; j < 0; j++) {
@@ -1417,69 +1431,226 @@ void print_search_reg_t2(s_reg_t2 *reg)
     printf("\n");
 }
 
+int already_updated (reg_t2 *original, s_reg_t2 *updated)
+{
+    if(updated->city != NULL)
+        if (original->city_namesize != -1)
+            if(strcmp(updated->city, original->city) != 0) return 0;
+        else return 0;
+
+    if(updated->brand != NULL)
+        if (original->brand_namesize != -1)
+            if(strcmp(updated->brand, original->brand) != 0) return 0;
+        else return 0;
+
+    if(updated->model != NULL)
+        if(original->model_namesize != -1)
+            if (strcmp(updated->model, original->model) != 0) return 0;
+        else return 0;
+
+    return 1;
+}
+
 int type2_size_diff (reg_t2 *original, s_reg_t2 *updated)
 {
     int size_diff = 0;
+    print_t2_register(original);
+    print_search_reg_t2(updated);
 
     if(updated->city != NULL)
-    {
-        if(original->city_namesize == -1) size_diff += 5 + strlen(updated->city);
-        else size_diff += strlen(updated->city) - original->city_namesize;
-    }
+        if(original->city_namesize != -1)
+            size_diff += original->city_namesize - strlen(updated->city);
+        else
+            size_diff -= 5 + strlen(updated->city);
 
     if(updated->brand != NULL)
-    {
-        if(original->brand_namesize == -1) size_diff += 5 + strlen(updated->brand);
-        else size_diff += strlen(updated->brand) - original->brand_namesize;
-    }
+        if (original->brand_namesize != -1)
+            size_diff += original->brand_namesize - strlen(updated->brand);
+        else
+            size_diff -= 5 + strlen(updated->brand);
 
     if(updated->model != NULL)
-    {
-        if(original->model_namesize == -1) size_diff += 5 + strlen(updated->model);
-        else size_diff += strlen(updated->model) - original->model_namesize;
-    }
+        if (original->model_namesize != -1)
+            size_diff += original->model_namesize - strlen(updated->model);
+        else
+            size_diff -= 5 + strlen(updated->model);
 
     return size_diff;
 }
 
-void type2_update (FILE *fp, t2_index *ind, int *size_ind, long int *offsets, int size_off, long int *head, int *qnt, s_reg_t2 *reg_upd)
+reg_t2 *update_reg (reg_t2 *original, s_reg_t2 *updates)
 {
-    for (int i = 0; i < size_off; i++)
-    {
-        fseek(fp, offsets[i] + 1, SEEK_SET);
-        reg_t2 *original = t2_file_to_struct(fp);
-        int size_diff = type2_size_diff (original, reg_upd);
+    if (updates->id != -1) original->id = updates->id;
+    if (updates->year != -1) original->year = updates->year;
+    if (updates->qtt != -1) original->qtt = updates->qtt;
 
-        if(size_diff > 0)
+    if(updates->state != NULL)
+    {
+        strcpy(original->state, updates->state);
+    }
+
+    if(updates->city != NULL)
+    {
+        if(original->city_namesize != -1)
         {
-            printf("%d > 0\n", size_diff);
+            free(original->city);
+            free(original->codC5);
+            original->register_size += strlen(updates->city);
         }
         else
         {
-            printf("%d <= 0\n", size_diff);
+            original->register_size += strlen(updates->city) - original->city_namesize;
         }
-        free_reg_t2(original);
+        original->city_namesize = strlen(updates->city);
+        original->city = calloc(original->city_namesize + 1, sizeof(char));
+        strcpy(original->city, updates->city);
+        original->codC5 = calloc(2, sizeof(char));
+        original->codC5[0] = '0';
+        original->codC5[1] = '\0';
     }
+
+    if(updates->brand != NULL)
+    {
+        if(original->brand_namesize != -1){
+            free(original->brand);
+            free(original->codC6);
+            original->register_size += strlen(updates->brand);
+        }
+        else
+        {
+            original->register_size += strlen(updates->brand) - original->brand_namesize;
+        }
+        original->brand_namesize = strlen(updates->brand);
+        original->brand = calloc(original->brand_namesize + 1, sizeof(char));
+        strcpy(original->brand, updates->brand);
+        original->codC6 = calloc(2, sizeof(char));
+        original->codC6[0] = '1';
+        original->codC6[1] = '\0';
+    }
+
+    if(updates->model != NULL)
+    {
+        if(original->model_namesize != -1){
+            free(original->model);
+            free(original->codC7);
+            original->register_size += strlen(updates->model);
+        }
+        else
+        {
+            original->register_size += strlen(updates->model) - original->model_namesize;
+        }
+        original->model_namesize = strlen(updates->model);
+        original->model = calloc(original->model_namesize + 1, sizeof(char));
+        strcpy(original->model, updates->model);
+        original->codC7 = calloc(2, sizeof(char));
+        original->codC7[0] = '2';
+        original->codC7[1] = '\0';
+    }
+
+    return original;
+}
+
+t2_index *type2_update (FILE *fp, t2_index *ind, int *size_ind, long int *offsets, int size_off, long int *head, int *qnt, s_reg_t2 *reg_upd)
+{
+    for (int i = 0; i < size_off; i++)
+    {
+        printf("offset = %ld\n", offsets[i]);
+        fseek(fp, offsets[i] + 1, SEEK_SET);
+        reg_t2 *original = t2_file_to_struct(fp);
+        /*
+        printf("original:\n");
+        print_t2_register(original);*/
+        if (already_updated(original, reg_upd) == 0)
+        {
+            int size_diff = type2_size_diff (original, reg_upd);
+            printf("\n\n--- size_diff = %d ---\n", size_diff);
+
+            original = update_reg(original, reg_upd);
+            //print_t2_register(original);
+
+            if(size_diff >= 0)
+            {
+                fseek(fp, offsets[i], SEEK_SET);
+
+                type2_write_register(original, fp);
+                printf("apos escrita = %ld\n", ftell(fp));
+
+                for (int j = 0; j < abs(size_diff); j++) {
+                    fwrite("$", sizeof(char), 1, fp);
+                }
+            }
+            else
+            {
+                long int temp[1] = {offsets[i]};
+                type2_delete(fp, ind, size_ind, temp, 1, head, qnt);
+
+                if (*head == -1)
+                {
+                    ind = type2_reg_insert_end(fp, original, ind, size_ind);
+                }
+                else
+                {
+                    int bigger_size;
+                    long int next;
+
+                    fseek(fp, *head + 1, SEEK_SET);
+                    fread(&bigger_size, sizeof(int), 1, fp);
+                    fread(&next, sizeof(long int), 1, fp);
+
+                    printf("bigger_size = %d\n", bigger_size);
+                    printf("original->register_size = %d\n", original->register_size);
+
+                    if (original->register_size > bigger_size)
+                    {
+                        ind = type2_reg_insert_end(fp, original, ind, size_ind);
+                    }
+                    else
+                    {
+                        fseek(fp, *head, SEEK_SET);
+                        type2_write_register(original, fp);
+
+                        for (int j = bigger_size; j < original->register_size; j++) {
+                            fwrite("$", sizeof(char), 1, fp);
+                        }
+
+                        *head = next;
+                    }
+                }
+
+
+
+
+
+
+            }
+        }
+        //free_reg_t2(original);
+    }
+    return ind;
 }
 
 void type2_update_set_where (FILE *data_fp, char *index_name)
 {
-    FILE *index_fp = fopen(index_name, "rb");
+    FILE *index_fp = fopen(index_name, "r+b");
     int index_size, n, off_size, qnt = 0;
-    long int head = type2_get_head(data_fp);
-    long int *offsets;
     t2_index *index = type2_index_disk_to_ram (index_fp, &index_size);
+    //print_index(index_fp);
+    long int head = type2_get_head(data_fp);
+    printf("head = %ld\n", head);
+    long int *offsets;
+
 
     scanf(" %d", &n);
     for (int i = 0; i < n; i++) {
+
         offsets = NULL;
         off_size = 0;
 
         s_reg_t2 *reg_search = get_reg_t2_search_parameters();
         s_reg_t2 *reg_update = get_reg_t2_search_parameters();
 
-        print_search_reg_t2(reg_search);
-        print_search_reg_t2(reg_update);
+        //print_search_reg_t2(reg_search);
+        //print_search_reg_t2(reg_update);
 
         if(reg_search->id != -1)
         {
@@ -1487,14 +1658,26 @@ void type2_update_set_where (FILE *data_fp, char *index_name)
         }
         else
         {
+            printf("sem id\n");
             offsets = type2_search_parameters_offset(data_fp, reg_search, &off_size);
         }
-        type2_update (data_fp, index, &index_size, offsets, off_size, &head, &qnt, reg_update);
+        printf("off_size = %d\n", off_size);
+        index = type2_update (data_fp, index, &index_size, offsets, off_size, &head, &qnt, reg_update);
 
+        //printf("index_size = %d\n", index_size);
         if (offsets != NULL) free(offsets);
         free_s_reg_t2(reg_update);
         free_s_reg_t2(reg_search);
     }
-    fclose(index_fp);
+    type2_index_ram_to_disk (index, index_size, index_fp);
     free(index);
+
+    fseek(data_fp, 1, SEEK_SET);
+    fwrite(&head, sizeof(long int), 1, data_fp);
+
+    fseek(index_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, index_fp);
+    fclose(index_fp);
+    fseek(data_fp, 0, SEEK_SET);
+    fwrite("1", sizeof(char), 1, data_fp);
 }
