@@ -1299,7 +1299,7 @@ static t2_index *type2_insert_register(FILE *data_fp, reg_t2 *reg, t2_index *ind
  *
  * @return ponteiro para o vetor de índices (t2_index *).
  */
-static t2_index *type2_reg_insert_end (FILE *data_fp, reg_t2 *reg, t2_index *index, int *index_size)
+static t2_index *type2_reg_insert_end(FILE *data_fp, reg_t2 *reg, t2_index *index, int *index_size)
 {
     long int new_offset, offset;
     fseek(data_fp, 0, SEEK_END);
