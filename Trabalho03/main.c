@@ -5,7 +5,7 @@
  * @brief  SCC0215 - Organização de Arquivos
  *         Trabalho 03
  *
- * @date   2022-06-29
+ * @date   2022-07-20
  *
  */
 
@@ -59,12 +59,12 @@ int main()
     }
 
     fclose(input_fp);
-    if (func == 6 || func == 7 || func == 8)
-    {
-        binarioNaTela(input_file);
-        binarioNaTela(index_file);
-        free(index_file);
-    }
+    // if (func == 6 || func == 7 || func == 8)
+    // {
+    //     binarioNaTela(input_file);
+    //     binarioNaTela(index_file);
+    //     free(index_file);
+    // }
 
     free(file_type);
     free(input_file);
