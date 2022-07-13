@@ -151,7 +151,7 @@ void binarioNaTela(char *nomeArquivoBinario)
 /**
  * @brief Atualiza o campo 'status' no cabeçalho para indicar término de escrita
  *
- * @param FILE *fp ponteiro para o arquivo
+ * @param fp ponteiro para o arquivo
  */
 void update_header_status(FILE *fp)
 {
