@@ -7,7 +7,7 @@
  *
  *         Módulo contendo funções utilitárias
  *
- * @date   2022-06-29
+ * @date   2022-07-20
  *
  */
 
