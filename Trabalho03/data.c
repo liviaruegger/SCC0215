@@ -10,3 +10,11 @@
  * @date   2022-07-20
  *
  */
+
+#include <stdio.h>
+#include "utils.h"
+
+#define DATA_HEADER_SIZE_T1 182
+#define DATA_EADER_SIZE_T2 190
+
+#define REGISTER_SIZE_T1 97

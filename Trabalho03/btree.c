@@ -10,3 +10,9 @@
  * @date   2022-07-20
  *
  */
+
+#include <stdio.h>
+#include "utils.h"
+
+#define INDEX_HEADER_SIZE_T1 45
+#define INDEX_HEADER_SIZE_T2 57
