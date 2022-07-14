@@ -149,12 +149,13 @@ void binarioNaTela(char *nomeArquivoBinario)
 }
 
 /**
- * @brief Atualiza o campo 'status' no cabeçalho para indicar término de escrita
- *
- * @param fp ponteiro para o arquivo
+ * @brief Atualiza o campo 'status' (byte offset 0) no cabeçalho de um arquivo.
+ * 
+ * @param fp ponteiro para o arquivo;
+ * @param status '1' para consistente, '0' para inconsistente.
  */
-void update_header_status(FILE *fp)
+void update_header_status(FILE *fp, char *status)
 {
     fseek(fp, 0, SEEK_SET);
-    fwrite("1", sizeof(char), 1, fp);
+    fwrite(status, sizeof(char), 1, fp);
 }
