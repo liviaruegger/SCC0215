@@ -19,4 +19,4 @@ char *read_until(FILE *stream, char c);
 
 void binarioNaTela(char *nomeArquivoBinario);
 
-void update_header_status(FILE *fp, char *status);
+void update_header_status(FILE *fp, char status);

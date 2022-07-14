@@ -154,8 +154,8 @@ void binarioNaTela(char *nomeArquivoBinario)
  * @param fp ponteiro para o arquivo;
  * @param status '1' para consistente, '0' para inconsistente.
  */
-void update_header_status(FILE *fp, char *status)
+void update_header_status(FILE *fp, char status)
 {
     fseek(fp, 0, SEEK_SET);
-    fwrite(status, sizeof(char), 1, fp);
+    fwrite(&status, sizeof(char), 1, fp);
 }

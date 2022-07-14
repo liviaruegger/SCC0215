@@ -19,10 +19,11 @@
 
 void write_header(FILE *fp, int type)
 {
+    fwrite("0", sizeof(char), 1, fp);
+    
     int temp = -1;
-
-    fwrite("0",   sizeof(char), 1, fp);
     fwrite(&temp, sizeof(int), 1, fp);
+    
     temp = 0;
     fwrite(&temp, sizeof(int), 1, fp);
     fwrite(&temp, sizeof(int), 1, fp);
@@ -42,6 +43,7 @@ void write_index(FILE *fp, int type)
 {
     write_header(fp, type);
 
-    char status = '1';
-    update_header_status(fp, &status);
+    /* code */
+
+    update_header_status(fp, '1');
 }
