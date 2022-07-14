@@ -37,3 +37,11 @@ void write_header(FILE *fp, int type)
         bytes_left--;
     }
 }
+
+void write_index(FILE *fp, int type)
+{
+    write_header(fp, type);
+
+    char status = '1';
+    update_header_status(fp, &status);
+}

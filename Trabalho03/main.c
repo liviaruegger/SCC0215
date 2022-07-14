@@ -57,7 +57,7 @@ int main()
     switch (func)
     {
         case 9:
-            write_header(index_fp, type);
+            write_index(index_fp, type);
             break;
 
         case 10:

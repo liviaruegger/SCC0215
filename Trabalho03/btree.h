@@ -11,4 +11,4 @@
  *
  */
 
-void write_header(FILE *fp, int type);
+void write_index(FILE *fp, int type);
