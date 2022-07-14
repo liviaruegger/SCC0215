@@ -1,4 +1,4 @@
-objects = main.c utils.c fixed.c variable.c
+objects = main.c utils.c btree.c data.c func.c
 
 all: $(objects)
 	gcc $(objects) -o programaTrab -g
@@ -13,4 +13,4 @@ val:
 	valgrind --tool=memcheck --leak-check=full -s --track-origins=yes --show-leak-kinds=all --show-reachable=yes ./programaTrab
 
 zip: $(objects)
-	zip 8586691_12542689.zip $(objects) utils.h fixed.h variable.h Makefile
+	zip 8586691_12542689.zip $(objects) utils.h btree.h data.h func.h Makefile
