@@ -16,7 +16,7 @@
 
 int main()
 {
-    int func, rrn, n;
+    int func, id, n;
     scanf("%d", &func);
     getchar(); // Consome o '\n'
 
@@ -57,14 +57,17 @@ int main()
     switch (func)
     {
         case 9:
-            write_index(index_fp, type);
+            write_index(index_fp, type); // TODO - não é melhor jogar isso pra dentro de uma função em func.c?
             break;
 
         case 10:
+            read_word(stdin); // Descarta
+            scanf("%d", &id);
 
             break;
 
         case 11:
+            scanf("%d", &n);
 
             break;
     }
