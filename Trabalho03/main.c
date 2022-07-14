@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "btree.h"
 
 int main()
 {
@@ -30,7 +31,7 @@ int main()
 
     FILE *data_fp = NULL;
     FILE *index_fp = NULL;
-    
+
     if (func == 9) // Criar índice
     {
         data_fp = fopen(data_filename, "rb");
@@ -46,7 +47,7 @@ int main()
         data_fp = fopen(data_filename, "r+b");
         index_fp = fopen(index_filename, "r+b");
     }
-    
+
     if (!data_fp || !index_fp)
     {
         printf("Falha no processamento do arquivo.\n");
@@ -56,7 +57,7 @@ int main()
     switch (func)
     {
         case 9:
-
+            write_header(index_fp, type);
             break;
 
         case 10:

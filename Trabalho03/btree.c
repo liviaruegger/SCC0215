@@ -16,3 +16,24 @@
 
 #define INDEX_HEADER_SIZE_T1 45
 #define INDEX_HEADER_SIZE_T2 57
+
+void write_header(FILE *fp, int type)
+{
+    int temp = -1;
+
+    fwrite("0",   sizeof(char), 1, fp);
+    fwrite(&temp, sizeof(int), 1, fp);
+    temp = 0;
+    fwrite(&temp, sizeof(int), 1, fp);
+    fwrite(&temp, sizeof(int), 1, fp);
+
+    int bytes_left;
+    if (type == 1) bytes_left = INDEX_HEADER_SIZE_T1 - ftell(fp);
+    else bytes_left = INDEX_HEADER_SIZE_T2 - ftell(fp);
+
+    while (bytes_left != 0)
+    {
+        fwrite("$", sizeof(char), 1, fp);
+        bytes_left--;
+    }
+}
