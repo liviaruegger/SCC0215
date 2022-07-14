@@ -11,3 +11,20 @@
  * @date   2022-07-20
  *
  */
+
+#include <stdio.h>
+
+void functionality_09(int file_type, FILE *data_fp, FILE *index_fp)
+{
+
+}
+
+void functionality_10(int file_type, FILE *data_fp, FILE *index_fp, int id)
+{
+
+}
+
+void functionality_11(int file_type, FILE *data_fp, FILE *index_fp, int n)
+{
+
+}

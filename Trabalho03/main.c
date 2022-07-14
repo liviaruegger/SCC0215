@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
-#include "btree.h"
+#include "func.h"
 
 int main()
 {
@@ -51,24 +51,27 @@ int main()
     if (!data_fp || !index_fp)
     {
         printf("Falha no processamento do arquivo.\n");
+        free(data_filename);
+        free(index_filename);
         return 0;
     }
 
     switch (func)
     {
         case 9:
-            write_index(index_fp, type); // TODO - não é melhor jogar isso pra dentro de uma função em func.c?
+            // write_index(index_fp, type); // TODO - não é melhor jogar isso pra dentro de uma função em func.c?
+            functionality_09(type, data_fp, index_fp);
             break;
 
         case 10:
             read_word(stdin); // Descarta
             scanf("%d", &id);
-
+            functionality_10(type, data_fp, index_fp, id);
             break;
 
         case 11:
             scanf("%d", &n);
-
+            functionality_11(type, data_fp, index_fp, n);
             break;
     }
 
