@@ -73,7 +73,7 @@ int main()
     fclose(index_fp);
 
     if (func == 11) binarioNaTela(data_filename);
-    if (func == 10 || func == 11) binarioNaTela(index_filename);
+    if (func == 9 || func == 11) binarioNaTela(index_filename);
 
     free(data_filename);
     free(index_filename);
