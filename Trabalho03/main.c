@@ -20,28 +20,38 @@ int main()
     getchar(); // Consome o '\n'
 
     char *file_type = read_word(stdin);
-    char *input_file = read_word(stdin);
-    char *output_file = NULL;
-    char *index_file = NULL;
-    FILE *output_fp = NULL;
-    FILE *index_fp = NULL;
-
-    FILE *input_fp = NULL;
-    if (func == 1) input_fp = fopen(input_file, "r");
-    //else if (func == 6 || func == 7 || func == 8) input_fp = fopen(input_file, "r+b");
-    else input_fp = fopen(input_file, "rb");
-
-    if (!input_fp)
-    {
-        printf("Falha no processamento do arquivo.\n");
-        free(file_type);
-        free(input_file);
-        return 0;
-    }
+    char *data_filename = read_word(stdin);
+    char *index_filename = read_word(stdin);
 
     int type;
     if (file_type[4] == '1') type = 1;
     else if (file_type[4] == '2') type = 2;
+    free(file_type);
+
+    FILE *data_fp = NULL;
+    FILE *index_fp = NULL;
+    
+    if (func == 9) // Criar índice
+    {
+        data_fp = fopen(data_filename, "rb");
+        index_fp = fopen(index_filename, "wb");
+    }
+    else if (func == 10) // Busca
+    {
+        data_fp = fopen(data_filename, "rb");
+        index_fp = fopen(index_filename, "rb");
+    }
+    else if (func == 11) // Inserção
+    {
+        data_fp = fopen(data_filename, "r+b");
+        index_fp = fopen(index_filename, "r+b");
+    }
+    
+    if (!data_fp || !index_fp)
+    {
+        printf("Falha no processamento do arquivo.\n");
+        return 0;
+    }
 
     switch (func)
     {
@@ -58,16 +68,14 @@ int main()
             break;
     }
 
-    fclose(input_fp);
-    // if (func == 6 || func == 7 || func == 8)
-    // {
-    //     binarioNaTela(input_file);
-    //     binarioNaTela(index_file);
-    //     free(index_file);
-    // }
+    fclose(data_fp);
+    fclose(index_fp);
 
-    free(file_type);
-    free(input_file);
+    if (func == 11) binarioNaTela(data_filename);
+    if (func == 10 || func == 11) binarioNaTela(index_filename);
+
+    free(data_filename);
+    free(index_filename);
 
     return 0;
 }
