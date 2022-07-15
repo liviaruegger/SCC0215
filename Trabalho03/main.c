@@ -16,7 +16,7 @@
 
 int main()
 {
-    int func, id, n;
+    int func;
     scanf("%d", &func);
     getchar(); // Consome o '\n'
 
@@ -29,54 +29,20 @@ int main()
     else if (file_type[4] == '2') type = 2;
     free(file_type);
 
-    FILE *data_fp = NULL;
-    FILE *index_fp = NULL;
-
-    if (func == 9) // Criar índice
-    {
-        data_fp = fopen(data_filename, "rb");
-        index_fp = fopen(index_filename, "wb");
-    }
-    else if (func == 10) // Busca
-    {
-        data_fp = fopen(data_filename, "rb");
-        index_fp = fopen(index_filename, "rb");
-    }
-    else if (func == 11) // Inserção
-    {
-        data_fp = fopen(data_filename, "r+b");
-        index_fp = fopen(index_filename, "r+b");
-    }
-
-    if (!data_fp || !index_fp)
-    {
-        printf("Falha no processamento do arquivo.\n");
-        free(data_filename);
-        free(index_filename);
-        return 0;
-    }
-
     switch (func)
     {
         case 9:
-            // write_index(index_fp, type); // TODO - não é melhor jogar isso pra dentro de uma função em func.c?
-            functionality_09(type, data_fp, index_fp);
+            functionality_09(type, data_filename, index_filename);
             break;
 
         case 10:
-            read_word(stdin); // Descarta
-            scanf("%d", &id);
-            functionality_10(type, data_fp, index_fp, id);
+            functionality_10(type, data_filename, index_filename);
             break;
 
         case 11:
-            scanf("%d", &n);
-            functionality_11(type, data_fp, index_fp, n);
+            functionality_11(type, data_filename, index_filename);
             break;
     }
-
-    fclose(data_fp);
-    fclose(index_fp);
 
     if (func == 11) binarioNaTela(data_filename);
     if (func == 9 || func == 11) binarioNaTela(index_filename);

@@ -12,8 +12,6 @@
  *
  */
 
-#include <stdio.h>
-
-void functionality_09(int file_type, FILE *data_fp, FILE *index_fp);
-void functionality_10(int file_type, FILE *data_fp, FILE *index_fp, int id);
-void functionality_11(int file_type, FILE *data_fp, FILE *index_fp, int n);
+void functionality_09(int file_type, char *data_filename, char *index_filename);
+void functionality_10(int file_type, char *data_filename, char *index_filename);
+void functionality_11(int file_type, char *data_filename, char *index_filename);
