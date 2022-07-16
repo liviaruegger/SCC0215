@@ -20,11 +20,18 @@
 
 #define REGISTER_SIZE_T1 97
 
+typedef union next
+{
+    int rrn; // Usado no tipo1
+    long offset; // Usado no tipo2
+}   next_t;
+
 typedef struct reg
 {
     char removed;
     int  register_size; // Apenas tipo2
-    int  next;
+    
+    next_t next;
 
     int  id;
     int  year;
@@ -111,12 +118,12 @@ static reg_t *read_register_from_bin(FILE *fp, int type)
     fread(&reg->removed, sizeof(char), 1, fp);
     if (type == 1)
     {
-        fread(&reg->next, sizeof(int), 1, fp);
+        fread(&reg->next.rrn, sizeof(int), 1, fp);
     }
     else
     {
         fread(&reg->register_size, sizeof(int), 1, fp);
-        fread(&reg->next, sizeof(long), 1, fp);
+        fread(&reg->next.offset, sizeof(long), 1, fp);
     }
     fread(&reg->id,   sizeof(int), 1, fp);
     fread(&reg->year, sizeof(int), 1, fp);

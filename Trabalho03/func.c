@@ -38,7 +38,7 @@ void functionality_09(int file_type, char *data_filename, char *index_filename)
 void functionality_10(int file_type, char *data_filename, char *index_filename)
 {
     int id;
-    read_word(stdin); // Descarta
+    for (int i = 0; i < 3; i++) getchar();
     scanf("%d", &id);
     
     FILE *data_fp  = fopen(data_filename,  "rb");
