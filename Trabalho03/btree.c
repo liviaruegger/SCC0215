@@ -17,6 +17,9 @@
 #define INDEX_HEADER_SIZE_T1 45
 #define INDEX_HEADER_SIZE_T2 57
 
+#define NODE_SIZE_T1 45
+#define NODE_SIZE_T2 57
+
 typedef union reference
 {
     int rrn; // Usado no tipo1
@@ -67,4 +70,38 @@ void write_index(FILE *fp, int type)
     /* code */
 
     update_header_status(fp, '1');
+}
+
+
+
+// ============================ FUNÇÕES PARA BUSCA =============================
+
+/**
+ * @brief Lê um nó de árvore-B de um arquivo binário de índice.
+ * 
+ * @param fp ponteiro para o arquivo de índice árvore-B;
+ * @param type tipo de arquivo (1 ou 2);
+ * @return ponteiro para o nó lido (node_t *).
+ */
+static node_t *read_node(FILE *fp, int type)
+{
+    node_t *node = (node_t *)malloc(sizeof(node_t));
+
+    fread(&node->type,   sizeof(char), 1, fp);
+    fread(&node->n_keys, sizeof(int),  1, fp);
+
+    for (int i = 0; i < 3; i++)
+    {
+        fread(&node->keys[i].id, sizeof(int), 1, fp);
+
+        if (type == 1)
+            fread(&node->keys[i].ref.rrn, sizeof(int), 1, fp);
+        else if (type == 2)
+            fread(&node->keys[i].ref.offset, sizeof(long int), 1, fp);
+    }
+
+    for (int i = 0; i < 4; i++)
+        fread(&node->children[i], sizeof(int), 1, fp);
+
+    return node;
 }
