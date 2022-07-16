@@ -165,8 +165,18 @@ static long _search(FILE *fp, int type, int rrn, int key)
     return found_ref;
 }
 
+/**
+ * @brief Busca um id no arquivo de índice árvore-B.
+ * 
+ * @param fp ponteiro para o arquivo de índice árvore-B;
+ * @param type tipo de arquivo (1 ou 2);
+ * @param id id (chave) para busca;
+ * @return valor encontrado (referência do registro no arquivo de dados),
+ * ou -1 caso a chave não esteja presente na árvore-B (long).
+ */
 long search(FILE *fp, int type, int id)
 {
-    // PEGAR TOPO PARA CHAMAR A FUNÇÃO _search
+    int root = get_root(fp);
 
+    return _search(fp, type, root, id);
 }

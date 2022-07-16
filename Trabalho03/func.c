@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "btree.h"
 
 void functionality_09(int file_type, char *data_filename, char *index_filename)
 {
@@ -48,7 +49,16 @@ void functionality_10(int file_type, char *data_filename, char *index_filename)
         exit(0);
     }
 
-    /* fazer coisas */
+    long found_ref = search(index_fp, file_type, id);
+
+    if (found_ref == -1)
+    {
+        printf("Registro inexistente.\n");
+    }
+    else
+    {
+        
+    }
 
     fclose(data_fp);
     fclose(index_fp);

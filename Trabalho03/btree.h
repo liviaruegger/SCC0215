@@ -12,3 +12,5 @@
  */
 
 void write_index(FILE *fp, int type);
+
+long search(FILE *fp, int type, int id);
