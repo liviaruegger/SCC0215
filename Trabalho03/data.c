@@ -96,10 +96,12 @@ static void print_register_info(reg_t *reg)
 
 /**
  * @brief Lê de um arquivo binário os dados de um registro e insere em uma
- * struct register_type1.
- *
+ * struct reg.
+ * 
  * @param fp ponteiro para o arquivo binário de dados;
- * @return ponteiro para a struct do registro lido (reg_t1 *).
+ * @param type tipo de arquivo (1 para registro de tamanho fixo, 2 para
+ * registro de tamanho variável);
+ * @return ponteiro para a struct do registro lido (reg_t *). 
  */
 static reg_t *read_register_from_bin(FILE *fp, int type)
 {
@@ -107,9 +109,15 @@ static reg_t *read_register_from_bin(FILE *fp, int type)
 
     // Campos de tamanho fixo
     fread(&reg->removed, sizeof(char), 1, fp);
-    if (type == 2) fread(&reg->register_size, sizeof(int), 1, fp);
-    fread(&reg->next, sizeof(int), 1, fp);
-    
+    if (type == 1)
+    {
+        fread(&reg->next, sizeof(int), 1, fp);
+    }
+    else
+    {
+        fread(&reg->register_size, sizeof(int), 1, fp);
+        fread(&reg->next, sizeof(long), 1, fp);
+    }
     fread(&reg->id,   sizeof(int), 1, fp);
     fread(&reg->year, sizeof(int), 1, fp);
     fread(&reg->qtt,  sizeof(int), 1, fp);
@@ -243,7 +251,7 @@ void search_by_offset_type2(FILE *fp, long offset)
     }
 
     fseek(fp, offset, SEEK_SET);
-    reg_t *reg = read_register_from_bin(fp, 1);
+    reg_t *reg = read_register_from_bin(fp, 2);
     print_register_info(reg);
 
     free_register(reg);
