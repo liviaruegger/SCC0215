@@ -17,6 +17,27 @@
 #define INDEX_HEADER_SIZE_T1 45
 #define INDEX_HEADER_SIZE_T2 57
 
+typedef union reference
+{
+    int rrn; // Usado no tipo1
+    long int offset; // Usado no tipo2
+}   ref_t;
+
+typedef struct key_ref
+{
+    int id;
+    ref_t ref;
+}   key_t;
+
+typedef struct node
+{
+    char type;
+    int n_keys;
+
+    key_t keys[3];
+    int children[4];
+}   node_t;
+
 void write_header(FILE *fp, int type)
 {
     fwrite("0", sizeof(char), 1, fp);
