@@ -13,12 +13,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "utils.h"
 
 #define DATA_HEADER_SIZE_T1 182
 #define DATA_HEADER_SIZE_T2 190
 
 #define REGISTER_SIZE_T1 97
+
+#define N_REG_REM_FIELD_OFFSET_T1 178
+#define N_REG_REM_FIELD_OFFSET_T2 186
 
 typedef union next
 {
@@ -98,6 +102,72 @@ static void print_register_info(reg_t *reg)
     else printf("QUANTIDADE DE VEICULOS: NAO PREENCHIDO\n\n");
 }
 
+/**
+ * @brief Retorna o RRN (para arquivo tipo1) ou o offset (para arquivo tipo2)
+ * contido no campo 'topo' do cabeçalho de um arquivo de dados.
+ * 
+ * @param fp ponteiro para o arquivo de dados;
+ * @param type tipo de arquivo (1 para registro de tamanho fixo, 2 para
+ * registro de tamanho variável);
+ * @return RRN ou offset armazenado no campo 'topo' (long).
+ */
+static long get_top(FILE *fp, int type)
+{
+    long top;
+    fseek(fp, 1, SEEK_SET);
+    if (type == 1) fread(&top, sizeof(int), 1, fp);
+    else fread(&top, sizeof(long), 1, fp);
+
+    return top;
+}
+
+/**
+ * @brief Atualiza o topo escrito no cabeçalho do arquivo.
+ * 
+ * @param fp ponteiro para o arquivo de dados;
+ * @param new_top valor (RRN ou offset) que deve ser colocado no campo 'topo'
+ * do cabeçalho;
+ * @param type tipo de arquivo (1 para registro de tamanho fixo, 2 para
+ * registro de tamanho variável).
+ */
+static void update_top(FILE *fp, long new_top, int type)
+{
+    fseek(fp, 1, SEEK_SET);
+    if (type == 1)
+    {
+        int new_top_type1 = (int)new_top;
+        fwrite(&new_top_type1, sizeof(int), 1, fp);
+    }
+    else
+    {
+        fwrite(&new_top, sizeof(long), 1, fp);
+    }
+}
+
+/**
+ * @brief Atualiza o campo 'nroRegRem' no cabeçalho.
+ * 
+ * @param fp ponteiro para o arquivo binário de dados;
+ * @param n quantidade de novos registros removidos;
+ * @param type tipo de arquivo (1 para registro de tamanho fixo, 2 para
+ * registro de tamanho variável).
+ */
+static void update_n_reg_rem(FILE *fp, int n, int type)
+{
+    int temp;
+
+    // Lê do cabeçalho o número de registros removidos
+    if (type == 1) fseek(fp, N_REG_REM_FIELD_OFFSET_T1, SEEK_SET);
+    else fseek(fp, N_REG_REM_FIELD_OFFSET_T2, SEEK_SET);
+    fread(&temp, sizeof(int), 1, fp);
+
+    // Atualiza
+    n = n + temp;
+    if (type == 1) fseek(fp, N_REG_REM_FIELD_OFFSET_T1, SEEK_SET);
+    else fseek(fp, N_REG_REM_FIELD_OFFSET_T2, SEEK_SET);
+    fwrite(&n, sizeof(int), 1, fp);
+}
+
 
 // ============================ FUNÇÕES DE LEITURA =============================
 
@@ -123,7 +193,7 @@ static reg_t *read_register_from_bin(FILE *fp, int type)
     else
     {
         fread(&reg->register_size, sizeof(int), 1, fp);
-        fread(&reg->next.offset, sizeof(long), 1, fp);
+        fread(&reg->next.offset,  sizeof(long), 1, fp);
     }
     fread(&reg->id,   sizeof(int), 1, fp);
     fread(&reg->year, sizeof(int), 1, fp);
@@ -188,9 +258,247 @@ static reg_t *read_register_from_bin(FILE *fp, int type)
     return reg;
 }
 
+/**
+ * @brief Lê da entrada padrão os dados de um registro e insere em uma
+ * struct reg.
+ *
+ * @param type tipo de arquivo (1 para registro de tamanho fixo, 2 para
+ * registro de tamanho variável);
+ * @return ponteiro para a struct do registro lido (reg_t *).
+ */
+static reg_t *read_register_from_stdin(int type)
+{
+    // Formato da entrada:
+    // id ano qtt "sigla" "cidade" "marca" "modelo"
+
+    reg_t *reg = malloc(sizeof(reg_t));
+
+    reg->removed = '0';
+
+    if (type == 1) reg->next.rrn = -1;
+    else reg->next.offset = -1;
+
+    char *id = read_until(stdin, ' ');
+    reg->id = atoi(id);
+    free(id);
+
+    char *year = read_until(stdin, ' ');
+    if (year[0] >= '0' && year[0] <= '9') reg->year = atoi(year);
+    else reg->year = -1;
+    free(year);
+
+    char *qtt = read_until(stdin, ' ');
+    if (qtt[0] >= '0' && qtt[0] <= '9') reg->qtt = atoi(qtt);
+    else reg->qtt = -1;
+    free(qtt);
+
+    char c = getchar();
+    if (c == '"')
+    {
+        char *state = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->state = state;
+    }
+    else // NULO
+    {
+        char *temp = read_until(stdin, ' ');
+        free(temp);
+        reg->state = malloc(sizeof(char) * 2);
+        reg->state[0] = '$';
+        reg->state[1] = '$';
+    }
+
+    c = getchar();
+    if (c == '"')
+    {
+        char *city = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->city = city;
+    }
+    else // NULO
+    {
+        char *temp = read_until(stdin, ' ');
+        free(temp);
+        reg->city = NULL;
+    }
+
+    if (reg->city) reg->city_namesize = strlen(reg->city);
+    else reg->city_namesize = 0;
+
+    c = getchar();
+    if (c == '"')
+    {
+        char *brand = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->brand = brand;
+    }
+    else // NULO
+    {
+        char *temp = read_until(stdin, ' ');
+        free(temp);
+        reg->brand = NULL;
+    }
+
+    if (reg->brand) reg->brand_namesize = strlen(reg->brand);
+    else reg->brand_namesize = 0;
+
+    c = getchar();
+    if (c == '"')
+    {
+        char *model = read_until(stdin, '"');
+        getchar(); // Consome o espaço que sobra
+
+        reg->model = model;
+    }
+    else // NULO
+    {
+        char *temp = read_line(stdin);
+        free(temp);
+        reg->model = NULL;
+    }
+
+    if (reg->model) reg->model_namesize = strlen(reg->model);
+    else reg->model_namesize = 0;
+
+    // Contar e guardar o tamanho do registro
+    int reg_size = 37; // Campos de tamanho fixo
+    reg_size += reg->city_namesize + reg->brand_namesize + reg->model_namesize;
+    reg->register_size = reg_size;
+
+    return reg;
+}
 
 // ============================ FUNÇÕES DE ESCRITA =============================
 
+/**
+ * @brief Escreve um registro em um arquivo binário de dados.
+ * 
+ * @param fp ponteiro para o arquivo binário de dados;
+ * @param reg registro que será escrito no arquivo;
+ * @param type tipo de arquivo (1 para registro de tamanho fixo, 2 para
+ * registro de tamanho variável).
+ */
+static void write_register(FILE *fp, reg_t *reg, int type)
+{
+    // Campos de tamanho fixo
+    fwrite(&reg->removed, sizeof(char), 1, fp);
+    if (type == 1)
+    {
+        fwrite(&reg->next.rrn, sizeof(int), 1, fp);
+    }
+    else
+    {
+        fwrite(&reg->register_size, sizeof(int), 1, fp);
+        fwrite(&reg->next.offset,  sizeof(long), 1, fp);
+    }
+    fwrite(&reg->id,   sizeof(int),  1, fp);
+    fwrite(&reg->year, sizeof(int),  1, fp);
+    fwrite(&reg->qtt,  sizeof(int),  1, fp);
+    fwrite(reg->state, sizeof(char), 2, fp);
+
+    int bytes_written = 19;
+
+    // Campos de tamanho variável
+    if (reg->city_namesize > 0)
+    {
+        fwrite(&reg->city_namesize, sizeof(int),  1, fp);
+        fwrite("0",                 sizeof(char), 1, fp);
+        fwrite(reg->city,           sizeof(char), reg->city_namesize, fp);
+        bytes_written += 4 + 1 + reg->city_namesize;
+    }
+
+    if (reg->brand_namesize > 0)
+    {
+        fwrite(&reg->brand_namesize, sizeof(int),  1, fp);
+        fwrite("1",                  sizeof(char), 1, fp);
+        fwrite(reg->brand,           sizeof(char), reg->brand_namesize, fp);
+        bytes_written += 4 + 1 + reg->brand_namesize;
+    }
+
+    if (reg->model_namesize > 0)
+    {
+        fwrite(&reg->model_namesize, sizeof(int),  1, fp);
+        fwrite("2",                  sizeof(char), 1, fp);
+        fwrite(reg->model,           sizeof(char), reg->model_namesize, fp);
+        bytes_written += 4 + 1 + reg->model_namesize;
+    }
+
+    if (type == 1)
+    {
+        while (bytes_written < REGISTER_SIZE_T1)
+        {
+            fwrite("$", sizeof(char), 1, fp);
+            bytes_written++;
+        }
+    }
+}
+
+/**
+ * @brief Adiciona novo(s) registro(s) a um arquivo de dados e atualiza o
+ * arquivo de índice.
+ *
+ * @param data_fp ponteiro para o arquivo de dados;
+ * @param index_fp ponteiro para o arquivo de índice;
+ * @param n_registers número de registros a serem adicionados.
+ */
+void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
+{
+    int rrn;
+
+    int pop_count = 0;
+
+    for (int i = 0; i < n_registers; i++)
+    {
+        reg_t *reg = read_register_from_stdin(1);
+
+        int top = (int)get_top(data_fp, 1);
+        if (top == -1)
+        {
+            fseek(data_fp, 174, SEEK_SET);
+            fread(&rrn, sizeof(int), 1, data_fp);
+
+            int next_rrn = rrn + 1;
+            fseek(data_fp, 174, SEEK_SET);
+            fwrite(&next_rrn, sizeof(int), 1, data_fp);
+
+            fseek(data_fp, 0, SEEK_END);
+        }
+        else
+        {
+            int offset = DATA_HEADER_SIZE_T1 + (top * REGISTER_SIZE_T1) + 1;
+            fseek(data_fp, offset, SEEK_SET);
+
+            int next; // Novo topo
+            fread(&next, sizeof(int), 1, data_fp);
+            update_top(data_fp, next, 1);
+
+            offset = DATA_HEADER_SIZE_T1 + (top * REGISTER_SIZE_T1);
+            fseek(data_fp, offset, SEEK_SET);
+            rrn = top;
+
+            pop_count++;
+        }
+
+        int id = reg->id;
+
+        write_register(data_fp, reg, 1);
+        free_register(reg);
+
+        // Marcar o arquivo de índice como inconsistente
+        update_header_status(index_fp, '0');
+
+        // Adicionar no índice árvore-B
+        // TODO -> inserir campos: id, rrn (essas duas variáveis mesmo)
+    }
+
+    update_n_reg_rem(data_fp, (-1) * pop_count, 1);
+
+    // Marcar o arquivo de índice como consistente
+    update_header_status(index_fp, '1');
+}
 
 // ============================ FUNÇÕES PARA BUSCA =============================
 

@@ -80,14 +80,8 @@ void functionality_11(int file_type, char *data_filename, char *index_filename)
         exit(0);
     }
 
-    for (int i = 0; i < n; i++)
-    {
-        /**
-         * -> Fazer leitura de infos da stdin
-         * -> Buscar local para inserção
-         * -> Inserir registro
-         */
-    }
+    if (file_type == 1) insert_new_registers_type1(data_fp, index_fp, n);
+    else ; // TODO: type 2
 
     fclose(data_fp);
     fclose(index_fp);
