@@ -42,6 +42,28 @@ typedef struct node
     int children[4];
 }   node_t;
 
+
+// ============================ FUNÇÕES AUXILIARES =============================
+
+/**
+ * @brief Função auxiliar que lê de um arquivo binário de índice árvore-B
+ * o RRN do nó raiz.
+ * 
+ * @param fp ponteiro para o arquivo de índice árvore-B;
+ * @return RRN do nó raiz (int).
+ */
+static int get_root(FILE *fp)
+{
+    int root;
+    fseek(fp, 1, SEEK_SET);
+    fread(&root, sizeof(int), 1, fp);
+    
+    return root;
+}
+
+
+// ============================ FUNÇÕES DE ESCRITA =============================
+
 void write_header(FILE *fp, int type)
 {
     fwrite("0", sizeof(char), 1, fp);
@@ -72,7 +94,6 @@ void write_index(FILE *fp, int type)
 
     update_header_status(fp, '1');
 }
-
 
 
 // ============================ FUNÇÕES PARA BUSCA =============================
@@ -108,7 +129,8 @@ static node_t *read_node(FILE *fp, int type)
 }
 
 /**
- * @brief Realiza uma busca no arquivo de índice árvore-B.
+ * @brief Função auxiliar recursiva que realiza a busca no arquivo de índice 
+ * árvore-B.
  * 
  * @param fp ponteiro para o arquivo de índice árvore-B;
  * @param type tipo de arquivo (1 ou 2);
@@ -117,12 +139,13 @@ static node_t *read_node(FILE *fp, int type)
  * @return valor encontrado (referência do registro no arquivo de dados),
  * ou -1 caso a chave não esteja presente na árvore-B (long).
  */
-static long search(FILE *fp, int type, int rrn, int key)
+static long _search(FILE *fp, int type, int rrn, int key)
 {
-    node_t *page;
-
     if (rrn == -1) return -1;
-    else page = read_node(fp, type);
+
+    int node_size = (type == 1) ? NODE_SIZE_T1 : NODE_SIZE_T2;
+    fseek(fp, (rrn + 1) * node_size, SEEK_SET);
+    node_t *page = read_node(fp, type);
     
     int found_ref = -1, pos = 0;
     for (int i = 0; i < 3; i++)
@@ -135,9 +158,15 @@ static long search(FILE *fp, int type, int rrn, int key)
             pos = i + 1;
     }
 
-    if (found_ref == -1) found_ref = search(fp, type, page->children[pos], key);
+    if (found_ref == -1) found_ref = _search(fp, type, page->children[pos], key);
 
     free(page);
 
     return found_ref;
+}
+
+long search(FILE *fp, int type, int id)
+{
+    // PEGAR TOPO PARA CHAMAR A FUNÇÃO _search
+
 }
