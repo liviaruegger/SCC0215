@@ -12,6 +12,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "utils.h"
 
 #define INDEX_HEADER_SIZE_T1 45
@@ -23,21 +24,21 @@
 typedef union reference
 {
     int rrn; // Usado no tipo1
-    long int offset; // Usado no tipo2
+    long offset; // Usado no tipo2
 }   ref_t;
 
 typedef struct key_ref
 {
     int id;
     ref_t ref;
-}   key_t;
+}   key_ref_t;
 
 typedef struct node
 {
     char type;
     int n_keys;
 
-    key_t keys[3];
+    key_ref_t keys[3];
     int children[4];
 }   node_t;
 
@@ -97,11 +98,46 @@ static node_t *read_node(FILE *fp, int type)
         if (type == 1)
             fread(&node->keys[i].ref.rrn, sizeof(int), 1, fp);
         else if (type == 2)
-            fread(&node->keys[i].ref.offset, sizeof(long int), 1, fp);
+            fread(&node->keys[i].ref.offset, sizeof(long), 1, fp);
     }
 
     for (int i = 0; i < 4; i++)
         fread(&node->children[i], sizeof(int), 1, fp);
 
     return node;
+}
+
+/**
+ * @brief Realiza uma busca no arquivo de índice árvore-B.
+ * 
+ * @param fp ponteiro para o arquivo de índice árvore-B;
+ * @param type tipo de arquivo (1 ou 2);
+ * @param rrn RRN da página sendo buscada na árvore-B;
+ * @param key chave para busca;
+ * @return valor encontrado (referência do registro no arquivo de dados),
+ * ou -1 caso a chave não esteja presente na árvore-B (long).
+ */
+static long search(FILE *fp, int type, int rrn, int key)
+{
+    node_t *page;
+
+    if (rrn == -1) return -1;
+    else page = read_node(fp, type);
+    
+    int found_ref = -1, pos = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        if (key < page->keys[i].id)
+            break;
+        else if (key == page->keys[i].id)
+            found_ref = (type == 1) ? (long)page->keys[i].ref.rrn : page->keys[i].ref.offset;
+        else
+            pos = i + 1;
+    }
+
+    if (found_ref == -1) found_ref = search(fp, type, page->children[pos], key);
+
+    free(page);
+
+    return found_ref;
 }
