@@ -147,7 +147,7 @@ static long _search(FILE *fp, int type, int rrn, int key)
     fseek(fp, (rrn + 1) * node_size, SEEK_SET);
     node_t *page = read_node(fp, type);
     
-    int found_ref = -1, pos = 0;
+    long found_ref = -1, pos = 0;
     for (int i = 0; i < 3; i++)
     {
         if (key < page->keys[i].id)

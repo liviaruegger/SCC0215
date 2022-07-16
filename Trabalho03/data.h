@@ -10,3 +10,6 @@
  * @date   2022-07-20
  *
  */
+
+void search_by_rrn_type1(FILE *fp, int rrn);
+void search_by_offset_type2(FILE *fp, long offset);

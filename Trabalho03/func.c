@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include "utils.h"
 #include "btree.h"
+#include "data.h"
 
 void functionality_09(int file_type, char *data_filename, char *index_filename)
 {
@@ -57,7 +58,8 @@ void functionality_10(int file_type, char *data_filename, char *index_filename)
     }
     else
     {
-        
+        if (file_type == 1) search_by_rrn_type1(data_fp, found_ref);
+        else search_by_offset_type2(data_fp, found_ref);
     }
 
     fclose(data_fp);
