@@ -62,6 +62,15 @@ static int get_root(FILE *fp)
 }
 
 
+// ============================ FUNÇÕES PARA DEBUG =============================
+
+
+void print_node(node_t *node)
+{
+
+}
+
+
 // ============================ FUNÇÕES DE ESCRITA =============================
 
 void write_header(FILE *fp, int type)
@@ -148,7 +157,7 @@ static long _search(FILE *fp, int type, int rrn, int key)
     node_t *page = read_node(fp, type);
     
     long found_ref = -1, pos = 0;
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < page->n_keys; i++)
     {
         if (key < page->keys[i].id)
             break;
