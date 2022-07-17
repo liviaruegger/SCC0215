@@ -293,6 +293,8 @@ long search(FILE *fp, int type, int id)
 
 // ============================ FUNÇÕES DE INSERÇÃO ============================
 
+
+// TOTALMENTE BRAINSTORM PRA TENTAR ENTENDER. NÃO TA CERTO ISSO
 char insert(FILE *fp, int type, int cur_rrn,
     key_ref_t *key, key_ref_t *promo_key, int promo_r_child)
 {
