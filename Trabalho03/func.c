@@ -31,7 +31,7 @@ void functionality_09(int file_type, char *data_filename, char *index_filename)
         printf("Falha no processamento do arquivo.\n");
         exit(0);
     }
-
+    /*
     // Armazena o tamanho do arquivo de dados.
     fseek(data_fp, 0, SEEK_END);
     long file_size = ftell(data_fp);
@@ -69,7 +69,7 @@ void functionality_09(int file_type, char *data_filename, char *index_filename)
                 //insert()
         }
     }
-
+    */
     fclose(data_fp);
     fclose(index_fp);
 }

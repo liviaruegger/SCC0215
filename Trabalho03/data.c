@@ -280,6 +280,7 @@ static reg_t *read_register_from_stdin(int type)
 
     if (type == 1) reg->next.rrn = -1;
     else reg->next.offset = -1;
+    reg->register_size = 0;
 
     char *id = read_until(stdin, ' ');
     reg->id = atoi(id);
@@ -327,7 +328,11 @@ static reg_t *read_register_from_stdin(int type)
         reg->city = NULL;
     }
 
-    if (reg->city) reg->city_namesize = strlen(reg->city);
+    if (reg->city)
+    {
+        reg->city_namesize = strlen(reg->city);
+        reg->register_size += reg->city_namesize + 5;
+    }
     else reg->city_namesize = 0;
 
     c = getchar();
@@ -345,7 +350,11 @@ static reg_t *read_register_from_stdin(int type)
         reg->brand = NULL;
     }
 
-    if (reg->brand) reg->brand_namesize = strlen(reg->brand);
+    if (reg->brand)
+    {
+        reg->brand_namesize = strlen(reg->brand);
+        reg->register_size += reg->brand_namesize + 5;
+    }
     else reg->brand_namesize = 0;
 
     c = getchar();
@@ -363,13 +372,15 @@ static reg_t *read_register_from_stdin(int type)
         reg->model = NULL;
     }
 
-    if (reg->model) reg->model_namesize = strlen(reg->model);
+    if (reg->model)
+    {
+        reg->model_namesize = strlen(reg->model);
+        reg->register_size += reg->model_namesize + 5;
+    }
     else reg->model_namesize = 0;
 
     // Contar e guardar o tamanho do registro
-    int reg_size = 37; // Campos de tamanho fixo
-    reg_size += reg->city_namesize + reg->brand_namesize + reg->model_namesize;
-    reg->register_size = reg_size;
+    reg->register_size += 22; // Campos de tamanho fixo
 
     return reg;
 }
@@ -511,72 +522,91 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
 }
 
 /**
- * @brief Adiciona um novo registro do tipo 2 a um arquivo de dados.
+ * @brief Adiciona novo(s) registro(s) a um arquivo de dados e atualiza o
+ * arquivo de índice.
  *
- * @param fp ponteiro para o arquivo de dados.
- * @param id ponteiro para a variável em que o id será armazenado.
- * @param ref ponteiro para a variável em que o valor referente ao id será
- * armazenado.
+ * @param data_fp ponteiro para o arquivo de dados;
+ * @param index_fp ponteiro para o arquivo de índice;
+ * @param n_registers número de registros a serem adicionados.
  */
-void insert_new_register_type2(FILE *fp, int *id, long *ref)
+void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
 {
-    reg_t *reg = read_register_from_stdin(2);
-    *id = reg->id;
+    long offset;
+    int pop_count = 0;
 
-    update_header_status(fp, '0');
-
-    long top = read_long_type(fp, 1);
-    if (top == -1)
+    for (int i = 0; i < n_registers; i++)
     {
-        // Adiciona no fim do arquivo.
-        fseek(fp, 0, SEEK_END);
-        *ref = ftell(fp);
-        write_register(fp, reg, 2);
+        reg_t *reg = read_register_from_stdin(2);
 
-        // Atualiza o campo 'proxByteOffset'
-        fseek(fp, 0, SEEK_END);
-        long next_byte_offset = ftell(fp);
-        write_long_type(fp, 178, next_byte_offset);
-    }
-    else
-    {
-        int top_size, size_diff;
-        top_size = read_int_type(fp, top + 1);
+        update_header_status(data_fp, '0');
 
-        size_diff = reg->register_size - top_size;
-
-        // Cabe
-        if (size_diff <= 0)
-        {
-            long prox;
-            fread(&prox, sizeof(long), 1, fp);
-
-            reg->register_size = top_size;
-            fseek(fp, top, SEEK_SET);
-            write_register(fp, reg, 2);
-
-            // Atualiza o campo 'topo'.
-            write_long_type(fp, 1, prox);
-
-            // Atualiza o campo 'nroRegRem'.
-            int reg_rem = read_int_type(fp, 186);
-            write_int_type(fp, 186, reg_rem - 1);
-        }
-        // Não cabe
-        else
+        long top = get_top(data_fp, 2);
+        if (top == -1)
         {
             // Adiciona no fim do arquivo.
-            fseek(fp, 0, SEEK_END);
-            *ref = ftell(fp);
-            write_register(fp, reg, 2);
+            fseek(data_fp, 0, SEEK_END);
+            offset = ftell(data_fp);
+            write_register(data_fp, reg, 2);
 
             // Atualiza o campo 'proxByteOffset'
-            fseek(fp, 0, SEEK_END);
-            long next_byte_offset = ftell(fp);
-            write_long_type(fp, 178, next_byte_offset);
+            fseek(data_fp, 0, SEEK_END);
+            long next_byte_offset = ftell(data_fp);
+            fseek(data_fp, 178, SEEK_SET);
+            fwrite(&next_byte_offset, sizeof(long), 1, data_fp);
         }
+        else
+        {
+            int top_size, size_diff;
+            fseek(data_fp, top + 1, SEEK_SET);
+            fread(&top_size, sizeof(int), 1, data_fp);
+
+            size_diff = reg->register_size - top_size;
+
+            // Cabe
+            if (size_diff <= 0)
+            {
+                long prox;
+                fread(&prox, sizeof(long), 1, data_fp);
+
+                reg->register_size = top_size;
+                fseek(data_fp, top, SEEK_SET);
+                write_register(data_fp, reg, 2);
+
+                // Atualiza o campo 'topo'.
+                update_top(data_fp, prox, 2);
+
+                offset = top;
+
+                pop_count++;
+            }
+            // Não cabe
+            else
+            {
+                // Adiciona no fim do arquivo.
+                fseek(data_fp, 0, SEEK_END);
+                offset = ftell(data_fp);
+                write_register(data_fp, reg, 2);
+
+                // Atualiza o campo 'proxByteOffset'
+                fseek(data_fp, 0, SEEK_END);
+                long next_byte_offset = ftell(data_fp);
+                fseek(data_fp, 178, SEEK_SET);
+                fwrite(&next_byte_offset, sizeof(long), 1, data_fp);
+            }
+        }
+        free_register(reg);
+
+        // Marcar o arquivo de índice como inconsistente
+        update_header_status(index_fp, '0');
+
+        // Adicionar no índice árvore-B
+        // TODO -> inserir campos: id, rrn (essas duas variáveis mesmo)
     }
-    free_register(reg);
+    update_n_reg_rem(data_fp, (-1) * pop_count, 2);
+
+    // Marcar os arquivos como consistentes
+    update_header_status(index_fp, '1');
+    update_header_status(data_fp,  '1');
 }
 
 // ============================ FUNÇÕES PARA BUSCA =============================
