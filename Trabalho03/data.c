@@ -457,6 +457,56 @@ static void write_register(FILE *fp, reg_t *reg, int type)
     }
 }
 
+void insert_registers_from_file_type1(FILE *data_fp, FILE *index_fp)
+{
+    // Armazena o tamanho do arquivo de dados.
+    fseek(data_fp, 0, SEEK_END);
+    long file_size = ftell(data_fp);
+
+    int id, ref;
+
+    for (long offset = DATA_HEADER_SIZE_T1; offset < file_size; offset += REGISTER_SIZE_T1)
+    {
+        fseek(data_fp, offset, SEEK_SET);
+
+        ref = (ftell(fp) - DATA_HEADER_SIZE_T1) / REGISTER_SIZE_T1;
+        reg_t *reg = read_register_from_bin(fp, 1);
+
+        if (reg->removed == '0')
+        {
+            id = reg->id;
+            // insert()
+        }
+        free_register(reg);
+    }
+}
+
+
+void insert_registers_from_file_type2(FILE *data_fp, FILE *index_fp)
+{
+    // Armazena o tamanho do arquivo de dados.
+    fseek(data_fp, 0, SEEK_END);
+    long file_size = ftell(data_fp);
+
+    int id;
+    long ref;
+
+    fseek(data_fp, DATA_HEADER_SIZE_T2, SEEK_SET);
+
+    while (ftell(data_fp) < file_size)
+    {
+        ref = ftell(data_fp);
+        reg_t *reg = read_register_from_bin(fp, 2);
+
+        if (reg->removed == '0')
+        {
+            id = reg->id;
+            // insert()
+        }
+    }
+}
+
+
 /**
  * @brief Adiciona novo(s) registro(s) a um arquivo de dados e atualiza o
  * arquivo de índice.
