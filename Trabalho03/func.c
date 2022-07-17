@@ -49,6 +49,7 @@ void functionality_09(int file_type, char *data_filename, char *index_filename)
 
             // Verifica se o registro não está removido.
             if (verifier == 1)
+                printf(" ");
                 // insert()
         }
     }
@@ -64,6 +65,7 @@ void functionality_09(int file_type, char *data_filename, char *index_filename)
 
             // Verifica se o registro não está removido.
             if (verifier == 1)
+                printf(" ");
                 //insert()
         }
     }
@@ -117,13 +119,25 @@ void functionality_11(int file_type, char *data_filename, char *index_filename)
         exit(0);
     }
 
+    int id;
     for (int i = 0; i < n; i++)
     {
+        if (file_type == 1)
+        {
+            int ref;
+            insert_new_register_type1(data_fp, &id, &ref);
+        }
+        else
+        {
+            long ref;
+            insert_new_register_type2(data_fp, &id, &ref);
+        }
         /**
-         * -> Fazer leitura de infos da stdin
-         * -> Buscar local para inserção
-         * -> Inserir registro
+         * -> Fazer leitura de infos da stdin [v]
+         * -> Buscar local para inserção [ ]
+         * -> Inserir registro [ ]
          */
+         update_header_status(data_fp, '1');
     }
 
     fclose(data_fp);
