@@ -503,6 +503,7 @@ void insert_registers_from_file_type2(FILE *data_fp, FILE *index_fp)
             id = reg->id;
             // insert()
         }
+        free_register(reg);
     }
 }
 
@@ -650,7 +651,7 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
         update_header_status(index_fp, '0');
 
         // Adicionar no índice árvore-B
-        // TODO -> inserir campos: id, rrn (essas duas variáveis mesmo)
+        // TODO -> inserir campos: id, offset (essas duas variáveis mesmo)
     }
     update_n_reg_rem(data_fp, (-1) * pop_count, 2);
 
