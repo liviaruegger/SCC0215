@@ -542,7 +542,7 @@ void insert_new_register_type1(FILE *fp, int *id, int *ref)
 
         // Atualiza o campo 'topo'.
         int new_top = read_int_type(fp, offset);
-        write_int_type(fp, 174, new_top);
+        write_int_type(fp, 1, new_top);
 
         // Atualiza o campo 'nroRegRem'.
         int reg_rem = read_int_type(fp, 178);
