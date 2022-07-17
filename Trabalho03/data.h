@@ -11,5 +11,8 @@
  *
  */
 
+int get_key_type1(FILE *fp, int *id, int *ref);
+int get_key_type2(FILE *fp, int *id, long *ref);
+
 void search_by_rrn_type1(FILE *fp, int rrn);
 void search_by_offset_type2(FILE *fp, long offset);

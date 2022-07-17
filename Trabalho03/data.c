@@ -30,7 +30,7 @@ typedef struct reg
 {
     char removed;
     int  register_size; // Apenas tipo2
-    
+
     next_t next;
 
     int  id;
@@ -104,11 +104,11 @@ static void print_register_info(reg_t *reg)
 /**
  * @brief Lê de um arquivo binário os dados de um registro e insere em uma
  * struct reg.
- * 
+ *
  * @param fp ponteiro para o arquivo binário de dados;
  * @param type tipo de arquivo (1 para registro de tamanho fixo, 2 para
  * registro de tamanho variável);
- * @return ponteiro para a struct do registro lido (reg_t *). 
+ * @return ponteiro para a struct do registro lido (reg_t *).
  */
 static reg_t *read_register_from_bin(FILE *fp, int type)
 {
@@ -145,7 +145,8 @@ static reg_t *read_register_from_bin(FILE *fp, int type)
 
     // Cidade
     fseek(fp, 4, SEEK_CUR);
-    fread(&c, sizeof(char), 1, fp);
+    if (fread(&c, sizeof(char), 1, fp) != 1)
+        return reg;
     fseek(fp, -5, SEEK_CUR);
 
     if (c == '0')
@@ -159,7 +160,8 @@ static reg_t *read_register_from_bin(FILE *fp, int type)
 
     // Marca
     fseek(fp, 4, SEEK_CUR);
-    fread(&c, sizeof(char), 1, fp);
+    if (fread(&c, sizeof(char), 1, fp) != 1)
+        return reg;
     fseek(fp, -5, SEEK_CUR);
 
     if (c == '1')
@@ -173,7 +175,8 @@ static reg_t *read_register_from_bin(FILE *fp, int type)
 
     // Modelo
     fseek(fp, 4, SEEK_CUR);
-    fread(&c, sizeof(char), 1, fp);
+    if (fread(&c, sizeof(char), 1, fp) != 1)
+        return reg;
     fseek(fp, -5, SEEK_CUR);
 
     if (c == '2')
@@ -191,6 +194,57 @@ static reg_t *read_register_from_bin(FILE *fp, int type)
 
 // ============================ FUNÇÕES DE ESCRITA =============================
 
+/**
+ * @brief Armazena o id e o valor referente a ele e retorna um verificador de
+ * status removido do registro.
+ *
+ * @param fp ponteiro para o arquivo binário de dados;
+ * @param id ponteiro para o inteiro que irá armazenar o id do registro.
+ * @param ref ponteiro para o inteiro que irá armazenar o valor referente ao id
+ * do registro.
+ * @return caso o registro esteja removido, retorna 0. Caso contrário, retorna 1.
+ */
+int get_key_type1(FILE *fp, int *id, int *ref)
+{
+    *ref = (ftell(fp) - DATA_HEADER_SIZE_T1) / REGISTER_SIZE_T1;
+    reg_t *reg = read_register_from_bin(fp, 1);
+
+    if (reg->removed == '1')
+    {
+        free_register(reg);
+        return 0;
+    }
+
+    *id = reg->id;
+    free_register(reg);
+    return 1;
+}
+
+/**
+ * @brief Armazena o id e o valor referente a ele e retorna um verificador de
+ * status removido do registro.
+ *
+ * @param fp ponteiro para o arquivo binário de dados;
+ * @param id ponteiro para o inteiro que irá armazenar o id do registro.
+ * @param ref ponteiro para o long que irá armazenar o valor referente ao id do
+ * registro.
+ * @return caso o registro esteja removido, retorna 0. Caso contrário, retorna 1.
+ */
+int get_key_type2(FILE *fp, int *id, long *ref)
+{
+    *ref = ftell(fp);
+    reg_t *reg = read_register_from_bin(fp, 2);
+
+    if (reg->removed == '1')
+    {
+        free_register(reg);
+        return 0;
+    }
+
+    *id = reg->id;
+    free_register(reg);
+    return 1;
+}
 
 // ============================ FUNÇÕES PARA BUSCA =============================
 
@@ -233,7 +287,7 @@ void search_by_rrn_type1(FILE *fp, int rrn)
 /**
  * @brief A partir de um byte offset, busca um registro epecífico em um arquivo
  * binário e imprime seus dados na saída padrão (ou informa que ele não existe).
- * 
+ *
  * @param fp ponteiro para o arquivo de dados no qual será feita a busca;
  * @param offset byte offset do registro buscado.
  */
