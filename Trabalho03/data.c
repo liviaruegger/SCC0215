@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "utils.h"
+#include "btree.h"
 
 #define DATA_HEADER_SIZE_T1 182
 #define DATA_HEADER_SIZE_T2 190
@@ -457,8 +458,11 @@ static void write_register(FILE *fp, reg_t *reg, int type)
     }
 }
 
-void insert_registers_from_file_type1(FILE *data_fp, FILE *index_fp)
+void build_index_from_file_type1(FILE *data_fp, FILE *index_fp)
 {
+    // Escreve o cabeçalho no arquivo de índice.
+    write_header(index_fp, 1);
+
     // Armazena o tamanho do arquivo de dados.
     fseek(data_fp, 0, SEEK_END);
     long file_size = ftell(data_fp);
@@ -477,13 +481,18 @@ void insert_registers_from_file_type1(FILE *data_fp, FILE *index_fp)
             id = reg->id;
             // insert()
         }
+        
         free_register(reg);
     }
+
+    update_header_status(index_fp, '1');
 }
 
-
-void insert_registers_from_file_type2(FILE *data_fp, FILE *index_fp)
+void build_index_from_file_type2(FILE *data_fp, FILE *index_fp)
 {
+    // Escreve o cabeçalho no arquivo de índice.
+    write_header(index_fp, 2);
+
     // Armazena o tamanho do arquivo de dados.
     fseek(data_fp, 0, SEEK_END);
     long file_size = ftell(data_fp);
@@ -503,10 +512,18 @@ void insert_registers_from_file_type2(FILE *data_fp, FILE *index_fp)
             id = reg->id;
             // insert()
         }
+<<<<<<< HEAD
         free_register(reg);
     }
 }
+=======
+>>>>>>> 871cdb3d6c2b93aefb9a37a93dbd8a10272f76f9
 
+        free_register(reg);
+    }
+
+    update_header_status(index_fp, '1');
+}
 
 /**
  * @brief Adiciona novo(s) registro(s) a um arquivo de dados e atualiza o
@@ -519,8 +536,11 @@ void insert_registers_from_file_type2(FILE *data_fp, FILE *index_fp)
 void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
 {
     int rrn;
-
     int pop_count = 0;
+
+    // Marcar os arquivos como inconsistentes
+    update_header_status(index_fp, '0');
+    update_header_status(data_fp,  '0');
 
     for (int i = 0; i < n_registers; i++)
     {
@@ -559,17 +579,15 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
         write_register(data_fp, reg, 1);
         free_register(reg);
 
-        // Marcar o arquivo de índice como inconsistente
-        update_header_status(index_fp, '0');
-
         // Adicionar no índice árvore-B
         // TODO -> inserir campos: id, rrn (essas duas variáveis mesmo)
     }
 
     update_n_reg_rem(data_fp, (-1) * pop_count, 1);
 
-    // Marcar o arquivo de índice como consistente
+    // Marcar os arquivos como consistentes
     update_header_status(index_fp, '1');
+    update_header_status(data_fp,  '1');
 }
 
 /**
@@ -585,11 +603,14 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
     long offset;
     int pop_count = 0;
 
+    // Marcar os arquivos como inconsistentes
+    update_header_status(index_fp, '0');
+    update_header_status(data_fp,  '0');
+
     for (int i = 0; i < n_registers; i++)
     {
         reg_t *reg = read_register_from_stdin(2);
 
-        update_header_status(data_fp, '0');
 
         long top = get_top(data_fp, 2);
         if (top == -1)
@@ -613,8 +634,7 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
 
             size_diff = reg->register_size - top_size;
 
-            // Cabe
-            if (size_diff <= 0)
+            if (size_diff <= 0) // Cabe
             {
                 long prox;
                 fread(&prox, sizeof(long), 1, data_fp);
@@ -630,8 +650,7 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
 
                 pop_count++;
             }
-            // Não cabe
-            else
+            else // Não cabe
             {
                 // Adiciona no fim do arquivo.
                 fseek(data_fp, 0, SEEK_END);
@@ -645,14 +664,13 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
                 fwrite(&next_byte_offset, sizeof(long), 1, data_fp);
             }
         }
-        free_register(reg);
 
-        // Marcar o arquivo de índice como inconsistente
-        update_header_status(index_fp, '0');
+        free_register(reg);
 
         // Adicionar no índice árvore-B
         // TODO -> inserir campos: id, offset (essas duas variáveis mesmo)
     }
+
     update_n_reg_rem(data_fp, (-1) * pop_count, 2);
 
     // Marcar os arquivos como consistentes

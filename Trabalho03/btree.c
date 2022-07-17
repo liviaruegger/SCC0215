@@ -50,6 +50,7 @@ typedef struct header
     int n_nodes;
 }   header_t;
 
+
 // ============================ FUNÇÕES AUXILIARES =============================
 
 /**
@@ -72,9 +73,9 @@ static int get_root(FILE *fp)
  * @brief Adiciona uma nova chave em um nó de árvore-B.
  *
  * @param node ponteiro para o nó de índice árvore-B;
- * @param key chave a ser inserida;
+ * @param key chave a ser inserida.
  */
-void update_node(node_t *node, key_ref_t *key)
+static void update_node(node_t *node, key_ref_t *key)
 {
     // Procura o índice em que a chave sera inserida.
     int i = 0;
@@ -94,24 +95,24 @@ void update_node(node_t *node, key_ref_t *key)
     node->n_keys = node->n_keys + 1;
 }
 
+
 // ============================ FUNÇÕES PARA DEBUG =============================
 
-
-void print_node(node_t *node)
+/**
+ * @brief Função auxiliar, apenas para debug, que imprime na saída padrão as 
+ * informações referentes a um nó de árvore-B.
+ * 
+ * @param node ponteiro para o nó que deve ser impresso (struct node).
+ */
+static void print_node(node_t *node)
 {
     printf("Type: %c / Number of keys = %d\n", node->type, node->n_keys);
 
     printf("   ");
-    for (int i = 0; i < 3; i++)
-    {
-        printf("|%4d", node->keys[i].id);
-    }
+    for (int i = 0; i < 3; i++) printf("|%4d", node->keys[i].id);
     printf("|\n");
 
-    for (int i = 0; i < 4; i++)
-    {
-        printf("%4d ", node->children[i]);
-    }
+    for (int i = 0; i < 4; i++) printf("%4d ", node->children[i]);
     printf("\n");
 }
 
@@ -124,7 +125,7 @@ void print_node(node_t *node)
  * @param fp ponteiro para o arquivo de índice árvore-B;
  * @return ponteiro para o cabeçalho lido (header_t *).
  */
-header_t *read_header(FILE *fp)
+static header_t *read_header(FILE *fp)
 {
     fseek(fp, 0, SEEK_SET);
 
@@ -137,76 +138,6 @@ header_t *read_header(FILE *fp)
 
     return header;
 }
-
-
-// ============================ FUNÇÕES DE ESCRITA =============================
-
-/**
- * @brief Escreve o cabeçalho de árvore-B em um arquivo binário de índice.
- *
- * @param fp ponteiro para o arquivo de índice árvore-B;
- * @param type tipo de arquivo (1 ou 2);
- */
-void write_header(FILE *fp, int type)
-{
-    fwrite("0", sizeof(char), 1, fp);
-
-    int temp = -1;
-    fwrite(&temp, sizeof(int), 1, fp);
-
-    temp = 0;
-    fwrite(&temp, sizeof(int), 1, fp);
-    fwrite(&temp, sizeof(int), 1, fp);
-
-    int bytes_left;
-    if (type == 1) bytes_left = INDEX_HEADER_SIZE_T1 - ftell(fp);
-    else bytes_left = INDEX_HEADER_SIZE_T2 - ftell(fp);
-
-    while (bytes_left != 0)
-    {
-        fwrite("$", sizeof(char), 1, fp);
-        bytes_left--;
-    }
-}
-
-/**
- * @brief Escreve um nó de árvore-B em um arquivo binário de índice.
- *
- * @param fp ponteiro para o arquivo de índice árvore-B;
- * @param node ponteiro para o nó a ser escrito;
- * @param type tipo de arquivo (1 ou 2);
- */
-void write_node(FILE *fp, node_t *node, int type)
-{
-    fwrite(&node->type,   sizeof(char), 1, fp);
-    fwrite(&node->n_keys, sizeof(int), 1, fp);
-
-    for (int i = 0; i < 3; i++)
-    {
-        fwrite(&node->keys[i].id, sizeof(int), 1, fp);
-
-        if (type == 1)
-            fwrite(&node->keys[i].ref.rrn, sizeof(int), 1, fp);
-        else if (type == 2)
-            fwrite(&node->keys[i].ref.offset, sizeof(long), 1, fp);
-    }
-
-    for (int i = 0; i < 4; i++)
-        fwrite(&node->children[i], sizeof(int), 1, fp);
-}
-
-
-void write_index(FILE *fp, int type)
-{
-    write_header(fp, type);
-
-    /* code */
-
-    update_header_status(fp, '1');
-}
-
-
-// ============================ FUNÇÕES PARA BUSCA =============================
 
 /**
  * @brief Lê um nó de árvore-B de um arquivo binário de índice.
@@ -237,6 +168,68 @@ static node_t *read_node(FILE *fp, int type)
 
     return node;
 }
+
+
+// ============================ FUNÇÕES DE ESCRITA =============================
+
+/**
+ * @brief Escreve o cabeçalho de árvore-B em um arquivo binário de índice.
+ *
+ * @param fp ponteiro para o arquivo de índice árvore-B;
+ * @param type tipo de arquivo (1 ou 2).
+ */
+void write_header(FILE *fp, int type)
+{
+    fseek(fp, 0, SEEK_SET);
+
+    fwrite("0", sizeof(char), 1, fp);
+
+    int temp = -1;
+    fwrite(&temp, sizeof(int), 1, fp);
+
+    temp = 0;
+    fwrite(&temp, sizeof(int), 1, fp);
+    fwrite(&temp, sizeof(int), 1, fp);
+
+    int bytes_left;
+    if (type == 1) bytes_left = INDEX_HEADER_SIZE_T1 - ftell(fp);
+    else bytes_left = INDEX_HEADER_SIZE_T2 - ftell(fp);
+
+    while (bytes_left != 0)
+    {
+        fwrite("$", sizeof(char), 1, fp);
+        bytes_left--;
+    }
+}
+
+/**
+ * @brief Escreve um nó de árvore-B em um arquivo binário de índice.
+ *
+ * @param fp ponteiro para o arquivo de índice árvore-B;
+ * @param node ponteiro para o nó a ser escrito;
+ * @param type tipo de arquivo (1 ou 2).
+ */
+static void write_node(FILE *fp, node_t *node, int type)
+{
+    fwrite(&node->type,   sizeof(char), 1, fp);
+    fwrite(&node->n_keys, sizeof(int), 1, fp);
+
+    for (int i = 0; i < 3; i++)
+    {
+        fwrite(&node->keys[i].id, sizeof(int), 1, fp);
+
+        if (type == 1)
+            fwrite(&node->keys[i].ref.rrn, sizeof(int), 1, fp);
+        else if (type == 2)
+            fwrite(&node->keys[i].ref.offset, sizeof(long), 1, fp);
+    }
+
+    for (int i = 0; i < 4; i++)
+        fwrite(&node->children[i], sizeof(int), 1, fp);
+}
+
+
+// ============================ FUNÇÕES PARA BUSCA =============================
 
 /**
  * @brief Função auxiliar recursiva que realiza a busca no arquivo de índice
@@ -290,6 +283,7 @@ long search(FILE *fp, int type, int id)
 
     return _search(fp, type, root, id);
 }
+
 
 // ============================ FUNÇÕES DE INSERÇÃO ============================
 

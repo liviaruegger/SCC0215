@@ -31,8 +31,9 @@ void functionality_09(int file_type, char *data_filename, char *index_filename)
         printf("Falha no processamento do arquivo.\n");
         exit(0);
     }
-    if (file_type == 1) insert_registers_from_file_type1(data_fp, index_fp);
-    else insert_registers_from_file_type2(data_fp, index_fp);
+
+    if (file_type == 1) build_index_from_file_type1(data_fp, index_fp);
+    else build_index_from_file_type2(data_fp, index_fp);
 
     fclose(data_fp);
     fclose(index_fp);

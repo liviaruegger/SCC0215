@@ -11,11 +11,8 @@
  *
  */
 
-int get_key_type1(FILE *fp, int *id, int *ref);
-int get_key_type2(FILE *fp, int *id, long *ref);
-
-void insert_new_register_type1(FILE *fp, int *id,  int *ref);
-void insert_new_register_type2(FILE *fp, int *id, long *ref);
+void build_index_from_file_type1(FILE *data_fp, FILE *index_fp);
+void build_index_from_file_type2(FILE *data_fp, FILE *index_fp);
 
 void search_by_rrn_type1(FILE *fp, int rrn);
 void search_by_offset_type2(FILE *fp, long offset);
