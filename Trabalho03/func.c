@@ -119,26 +119,8 @@ void functionality_11(int file_type, char *data_filename, char *index_filename)
         exit(0);
     }
 
-    int id;
-    for (int i = 0; i < n; i++)
-    {
-        if (file_type == 1)
-        {
-            int ref;
-            insert_new_register_type1(data_fp, &id, &ref);
-        }
-        else
-        {
-            long ref;
-            insert_new_register_type2(data_fp, &id, &ref);
-        }
-        /**
-         * -> Fazer leitura de infos da stdin [v]
-         * -> Buscar local para inserção [ ]
-         * -> Inserir registro [ ]
-         */
-         update_header_status(data_fp, '1');
-    }
+    if (file_type == 1) insert_new_registers_type1(data_fp, index_fp, n);
+    else insert_new_registers_type2(data_fp, index_fp, n);
 
     fclose(data_fp);
     fclose(index_fp);
