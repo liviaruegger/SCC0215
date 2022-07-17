@@ -31,45 +31,9 @@ void functionality_09(int file_type, char *data_filename, char *index_filename)
         printf("Falha no processamento do arquivo.\n");
         exit(0);
     }
-    /*
-    // Armazena o tamanho do arquivo de dados.
-    fseek(data_fp, 0, SEEK_END);
-    long file_size = ftell(data_fp);
+    if (file_type == 1) insert_registers_from_file_type1(data_fp, index_fp);
+    else insert_registers_from_file_type2(data_fp, index_fp);
 
-    int id, verifier;
-    if (file_type == 1)
-    {
-        int ref;
-
-        for (long offset = 182; offset < file_size; offset += 97)
-        {
-            fseek(data_fp, offset, SEEK_SET);
-
-            verifier = get_key_type1(data_fp, &id, &ref);
-
-            // Verifica se o registro não está removido.
-            if (verifier == 1)
-                printf(" ");
-                // insert()
-        }
-    }
-    else
-    {
-        long ref;
-
-        fseek(data_fp, 190, SEEK_SET); //DATA_HEADER_SIZE_T2
-
-        while (ftell(data_fp) < file_size)
-        {
-            verifier = get_key_type2(data_fp, &id, &ref);
-
-            // Verifica se o registro não está removido.
-            if (verifier == 1)
-                printf(" ");
-                //insert()
-        }
-    }
-    */
     fclose(data_fp);
     fclose(index_fp);
 }
