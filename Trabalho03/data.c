@@ -469,8 +469,8 @@ void insert_registers_from_file_type1(FILE *data_fp, FILE *index_fp)
     {
         fseek(data_fp, offset, SEEK_SET);
 
-        ref = (ftell(fp) - DATA_HEADER_SIZE_T1) / REGISTER_SIZE_T1;
-        reg_t *reg = read_register_from_bin(fp, 1);
+        ref = (ftell(data_fp) - DATA_HEADER_SIZE_T1) / REGISTER_SIZE_T1;
+        reg_t *reg = read_register_from_bin(data_fp, 1);
 
         if (reg->removed == '0')
         {
@@ -496,7 +496,7 @@ void insert_registers_from_file_type2(FILE *data_fp, FILE *index_fp)
     while (ftell(data_fp) < file_size)
     {
         ref = ftell(data_fp);
-        reg_t *reg = read_register_from_bin(fp, 2);
+        reg_t *reg = read_register_from_bin(data_fp, 2);
 
         if (reg->removed == '0')
         {
