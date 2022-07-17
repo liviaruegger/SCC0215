@@ -23,13 +23,50 @@ void functionality_09(int file_type, char *data_filename, char *index_filename)
     FILE *data_fp =  fopen(data_filename,  "rb");
     FILE *index_fp = fopen(index_filename, "wb");
 
-    if (!data_fp || !index_fp)
+    char status;
+    fread(&status, sizeof(char), 1, data_fp);
+
+    if (!data_fp || !index_fp || status == '0')
     {
         printf("Falha no processamento do arquivo.\n");
         exit(0);
     }
 
-    /* fazer coisas */
+    // Armazena o tamanho do arquivo de dados.
+    fseek(data_fp, 0, SEEK_END);
+    long file_size = ftell(data_fp);
+
+    int id, verifier;
+    if (file_type == 1)
+    {
+        int ref;
+
+        for (long offset = 182; offset < file_size; offset += 97)
+        {
+            fseek(data_fp, offset, SEEK_SET);
+
+            verifier = get_key_type1(data_fp, &id, &ref);
+
+            // Verifica se o registro não está removido.
+            if (verifier == 1)
+                // insert()
+        }
+    }
+    else
+    {
+        long ref;
+
+        fseek(data_fp, 190, SEEK_SET); //DATA_HEADER_SIZE_T2
+
+        while (ftell(data_fp) < file_size)
+        {
+            verifier = get_key_type2(data_fp, &id, &ref);
+
+            // Verifica se o registro não está removido.
+            if (verifier == 1)
+                //insert()
+        }
+    }
 
     fclose(data_fp);
     fclose(index_fp);
@@ -40,7 +77,7 @@ void functionality_10(int file_type, char *data_filename, char *index_filename)
     int id;
     for (int i = 0; i < 3; i++) getchar();
     scanf("%d", &id);
-    
+
     FILE *data_fp  = fopen(data_filename,  "rb");
     FILE *index_fp = fopen(index_filename, "rb");
 
