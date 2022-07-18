@@ -21,6 +21,14 @@
 #define NODE_SIZE_T1 45
 #define NODE_SIZE_T2 57
 
+#define ROOT     '0'
+#define INTERNAL '1'
+#define LEAF     '2'
+
+#define NO_PROMOTION '0'
+#define PROMOTION    '1'
+#define ERROR        '2'
+
 typedef union reference
 {
     int rrn; // Usado no tipo1
@@ -41,6 +49,15 @@ typedef struct node
     key_ref_t keys[3];
     int children[4];
 }   node_t;
+
+typedef struct split_node
+{
+    char type;
+    int n_keys;
+
+    key_ref_t keys[4];
+    int children[5];
+}   split_node_t;
 
 typedef struct header
 {
@@ -75,7 +92,7 @@ static int get_root(FILE *fp)
  * @param node ponteiro para o nó de índice árvore-B;
  * @param key chave a ser inserida.
  */
-static void update_node(node_t *node, key_ref_t *key)
+static void update_node(node_t *node, key_ref_t *key, int rrn)
 {
     // Procura o índice em que a chave sera inserida.
     int i = 0;
@@ -87,10 +104,12 @@ static void update_node(node_t *node, key_ref_t *key)
     {
         node->keys[j].id  = node->keys[j - 1].id;
         node->keys[j].ref = node->keys[j - 1].ref;
+        node->children[j + 1] = node->children[j];
     }
 
     node->keys[i].id  = key->id;
     node->keys[i].ref = key->ref;
+    node->children[i + 1] = rrn;
 
     node->n_keys = node->n_keys + 1;
 }
@@ -287,34 +306,57 @@ long search(FILE *fp, int type, int id)
 
 // ============================ FUNÇÕES DE INSERÇÃO ============================
 
-
-// TOTALMENTE BRAINSTORM PRA TENTAR ENTENDER. NÃO TA CERTO ISSO
-char insert(FILE *fp, int type, int cur_rrn,
-    key_ref_t *key, key_ref_t *promo_key, int promo_r_child)
+key_ref_t split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child)
 {
-    char return_value = '0';
 
-    // PROMOTION = 'p'
-    // NO PROMOTION = 'n'
-    // ERROR = 'e'
+}
 
-    // Gui usou alguma coisa com o tipo de nó
-    if (cur_rrn == -1)
+key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_child)
+{
+    if (rrn == -1)
     {
-        promo_key = key;
-
+        *promo_right_child = -1;
+        return key; // promo_key = key
     }
 
-    /* Busca */
-    node_t *page = NULL;
-
-    if (return_value == 'n' || return_value == 'e')
-        return return_value;
-    else if (page->n_keys != 3)
+    int node_size = (type == 1) ? NODE_SIZE_T1 : NODE_SIZE_T2;
+    fseek(fp, (rrn + 1) * node_size, SEEK_SET);
+    node_t *page = read_node(fp, type);
+    
+    // Buscar na página
+    long found_ref = -1, pos = 0;
+    for (int i = 0; i < page->n_keys; i++)
     {
-        update_node(page, key);
-        //fseek(X, X, X);
+        if (key.id < page->keys[i].id)
+            break;
+        else if (key.id == page->keys[i].id)
+            found_ref = (type == 1) ? (long)page->keys[i].ref.rrn : page->keys[i].ref.offset;
+        else
+            pos = i + 1;
+    }
+
+    key_ref_t return_value;
+
+    if (found_ref != -1) // Chave repetida, não precisa inserir
+        return_value.id = -1;
+    else
+        return_value = insert(fp, type, page->children[pos], key, promo_right_child);
+
+    if (return_value.id == -1)
+    {
+        return return_value;
+    }
+    else if (page->n_keys < 3)
+    {
+        update_node(page, &key, *promo_right_child);
+        fseek(fp, (rrn + 1) * node_size, SEEK_SET);
         write_node(fp, page, type);
-        return 'n';
+
+        return_value.id = -1;
+        return return_value;
+    }
+    else
+    {
+
     }
 }
