@@ -479,9 +479,11 @@ void build_index_from_file_type1(FILE *data_fp, FILE *index_fp)
         if (reg->removed == '0')
         {
             id = reg->id;
+            printf("id = %d; rrn = %d\n", reg->id, ref);
             // insert()
+            driver(index_fp, 1, id, ref);
         }
-        
+
         free_register(reg);
     }
 
@@ -510,18 +512,11 @@ void build_index_from_file_type2(FILE *data_fp, FILE *index_fp)
         if (reg->removed == '0')
         {
             id = reg->id;
+            printf("id = %d; offset = %ld\n", reg->id, ref);
             // insert()
         }
-<<<<<<< HEAD
         free_register(reg);
     }
-}
-=======
->>>>>>> 871cdb3d6c2b93aefb9a37a93dbd8a10272f76f9
-
-        free_register(reg);
-    }
-
     update_header_status(index_fp, '1');
 }
 

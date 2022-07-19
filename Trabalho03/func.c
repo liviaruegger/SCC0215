@@ -21,7 +21,7 @@
 void functionality_09(int file_type, char *data_filename, char *index_filename)
 {
     FILE *data_fp =  fopen(data_filename,  "rb");
-    FILE *index_fp = fopen(index_filename, "wb");
+    FILE *index_fp = fopen(index_filename, "w+b");
 
     char status;
     fread(&status, sizeof(char), 1, data_fp);

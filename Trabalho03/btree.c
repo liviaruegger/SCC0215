@@ -96,7 +96,7 @@ static void update_node(node_t *node, key_ref_t *key, int rrn)
 {
     // Procura o índice em que a chave sera inserida.
     int i = 0;
-    while(node->keys[i].id < key->id && i != 2)
+    while(i != 2 && node->keys[i].id != -1 && node->keys[i].id < key->id)
         i++;
 
     // Move as chaves necessárias para a direita.
@@ -112,6 +112,19 @@ static void update_node(node_t *node, key_ref_t *key, int rrn)
     node->children[i + 1] = rrn;
 
     node->n_keys = node->n_keys + 1;
+}
+
+
+static void reset_node(node_t *node)
+{
+    for (int j = 0; j < 2; j++)
+    {
+        node->keys[j].id  = -1;
+        node->children[j] = -1;
+    }
+    node->children[3] = -1;
+    node->n_keys = 0;
+    node->type = LEAF;
 }
 
 
@@ -349,21 +362,81 @@ long search(FILE *fp, int type, int id)
 
 // ============================ FUNÇÕES DE INSERÇÃO ============================
 
+// Dúvida em relação a oq acontece quando a promoção da chave chega na raiz
+
 key_ref_t _split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child,
-                 node_t *new_page, int type)
+                 node_t *new_page, FILE *fp, int type)
 {
+    // Copia as chaves e filhos para a struct.
     split_node_t *split_node = copy_node(page, type);
 
+    // Insere e ordena a nova chave e o novo rrn.
     insert_split_node(split_node, key, i_rrn);
 
-    printf("   ");
-    for (int i = 0; i < 4; i++) printf("|%4d", split_node->keys[i].id);
-    printf("|\n");
+    new_page = (node_t *)malloc(sizeof(node_t));
 
-    for (int i = 0; i < 5; i++) printf("%4d ", split_node->children[i]);
-    printf("\n");
+    // promo_right_child = RRN of NEW_PAGE(prox_RRN)
+    fseek(fp, 5, SEEK_SET);
+    fread(promo_right_child, sizeof(int), 1, fp);
+
+    printf("promo_right_child = %d\n", *promo_right_child); // DEBUG
+
+    // Atualiza o cabeçalho
+    int n_nodes;
+    int next_rrn = *promo_right_child + 1;
+    fread(&n_nodes, sizeof(int), 1, fp);
+    n_nodes++;
+
+    fseek(fp, 5, SEEK_SET);
+
+    fwrite(&next_rrn, sizeof(int), 1, fp);
+    fwrite(&n_nodes,            sizeof(int), 1, fp);
+
+    // Copia as chaves e filhos antes da chave promovida para PAGE
+    reset_node(page);
+    page->keys[0] = split_node->keys[0];
+    page->keys[1] = split_node->keys[1];
+    page->children[0] = split_node->children[0];
+    page->children[1] = split_node->children[1];
+    page->children[2] = split_node->children[2];
+    page->n_keys = 2;
+
+    // Copia as chaves e filhos depois da chave promovida para NEW_PAGE
+    reset_node(new_page);
+    new_page->keys[0] = split_node->keys[2];
+    new_page->children[0] = split_node->children[3];
+    new_page->children[1] = split_node->children[4];
+    page->n_keys = 1;
+
+    // Armazena para poder desalocar split_node
+    key_ref_t middle = split_node->keys[2];
 
     free(split_node);
+
+    return middle;
+}
+
+key_ref_t split(key_ref_t key, int i_rrn, node_t *page, int page_rrn, int *promo_right_child,
+           FILE *fp, int type)
+{
+    node_t *new_page;
+
+    key_ref_t return_value = _split(key, i_rrn, page, promo_right_child, new_page, fp, type);
+
+    // Tamanho do nó
+    int node_size = (type == 1) ? NODE_SIZE_T1 : NODE_SIZE_T2;
+
+    // Escreve PAGE
+    fseek(fp, (page_rrn + 1) * node_size, SEEK_SET);
+    write_node(fp, page, type);
+
+    // ESCREVE NEW_PAGE
+    fseek(fp, (*promo_right_child + 1) * node_size, SEEK_SET);
+    write_node(fp, new_page, type);
+
+    free(new_page);
+
+    return return_value;
 }
 
 key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_child)
@@ -412,7 +485,64 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
     }
     else
     {
-        node_t *new_page;
-        return_value = _split(return_value, page->children[pos], page, promo_right_child, new_page, type);
+        split(key, page->children[pos], page, rrn, promo_right_child, fp, type);
+
+        return return_value;
+    }
+}
+
+void driver(FILE *fp, int type, int id, int rrn)
+{
+    int rrn_root, next_rrn, n_nodes;
+
+    // Pega nó da raiz
+    fseek(fp, 1, SEEK_SET);
+    fread(&rrn_root, sizeof(int), 1, fp);
+    printf("rrn root = %d\n", rrn_root);
+
+    // Cria a chave a ser inserida
+    key_ref_t key;
+    key.id = id;
+    key.ref.rrn = rrn;
+
+    int promo_right_child;
+
+    key_ref_t return_value = insert(fp, type, rrn_root, key, &promo_right_child);
+
+    // Chave retornada da inserção (precisa criar nó raiz)
+    if (return_value.id != -1)
+    {
+        printf("---- Raiz -----\n"); // DEBUG
+        fseek(fp, 5, SEEK_SET);
+        fread(&next_rrn, sizeof(int), 1, fp);
+        fread(&n_nodes, sizeof(int), 1, fp);
+        printf("next_rrn = %d; n_nodes = %d\n", next_rrn, n_nodes); // DEBUG
+
+        // Cria o nó que será a raiz
+        node_t *root = (node_t *)malloc(sizeof(node_t));
+        reset_node(root);
+
+        // Atribuições do moodle
+        root->type = ROOT;
+        root->n_keys = 1;
+        root->keys[0] = return_value;
+        root->children[0] = rrn_root;
+        root->children[1] = promo_right_child;
+
+        //fseek(fp, (next_rrn + 1) * node_size, SEEK_SET); Alternativa
+        fseek(fp, 0, SEEK_END);
+        write_node(fp, root, type);
+        rrn_root = next_rrn;
+        next_rrn++;
+        n_nodes++;
+
+        // Atualiza o cabeçalho
+        fseek(fp, 1, SEEK_SET);
+
+        fwrite(&rrn_root, sizeof(int), 1, fp);
+        fwrite(&next_rrn, sizeof(int), 1, fp);
+        fwrite(&n_nodes, sizeof(int), 1, fp);
+
+        free(root);
     }
 }
