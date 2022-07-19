@@ -118,9 +118,9 @@ static void update_node(node_t *node, key_ref_t *key, int rrn)
 // ============================ FUNÇÕES PARA DEBUG =============================
 
 /**
- * @brief Função auxiliar, apenas para debug, que imprime na saída padrão as 
+ * @brief Função auxiliar, apenas para debug, que imprime na saída padrão as
  * informações referentes a um nó de árvore-B.
- * 
+ *
  * @param node ponteiro para o nó que deve ser impresso (struct node).
  */
 static void print_node(node_t *node)
@@ -186,6 +186,49 @@ static node_t *read_node(FILE *fp, int type)
         fread(&node->children[i], sizeof(int), 1, fp);
 
     return node;
+}
+
+
+static split_node_t *copy_node(node_t *node, int type)
+{
+    split_node_t *split_node = (split_node_t *)malloc(sizeof(split_node_t));
+
+    split_node->type = node->type;
+
+    for (int i = 0; i < 3; i++)
+    {
+        split_node->keys[i].id = node->keys[i].id;
+
+        if (type == 1)
+            split_node->keys[i].ref.offset = node->keys[i].ref.offset;
+        else if (type == 2)
+            split_node->keys[i].ref.offset = node->keys[i].ref.offset;
+
+        split_node->children[i] = node->children[i];
+    }
+    split_node->children[3] = node->children[3];
+
+    return split_node;
+}
+
+static void insert_split_node(split_node_t *node, key_ref_t key, int rrn)
+{
+    // Procura o índice em que a chave sera inserida.
+    int i = 0;
+    while(node->keys[i].id < key.id && i != 3)
+        i++;
+
+    // Move as chaves necessárias para a direita.
+    for (int j = 3; j > i; j--)
+    {
+        node->keys[j].id  = node->keys[j - 1].id;
+        node->keys[j].ref = node->keys[j - 1].ref;
+        node->children[j + 1] = node->children[j];
+    }
+
+    node->keys[i].id  = key.id;
+    node->keys[i].ref = key.ref;
+    node->children[i + 1] = rrn;
 }
 
 
@@ -306,9 +349,21 @@ long search(FILE *fp, int type, int id)
 
 // ============================ FUNÇÕES DE INSERÇÃO ============================
 
-key_ref_t split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child)
+key_ref_t _split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child,
+                 node_t *new_page, int type)
 {
+    split_node_t *split_node = copy_node(page, type);
 
+    insert_split_node(split_node, key, i_rrn);
+
+    printf("   ");
+    for (int i = 0; i < 4; i++) printf("|%4d", split_node->keys[i].id);
+    printf("|\n");
+
+    for (int i = 0; i < 5; i++) printf("%4d ", split_node->children[i]);
+    printf("\n");
+
+    free(split_node);
 }
 
 key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_child)
@@ -322,7 +377,7 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
     int node_size = (type == 1) ? NODE_SIZE_T1 : NODE_SIZE_T2;
     fseek(fp, (rrn + 1) * node_size, SEEK_SET);
     node_t *page = read_node(fp, type);
-    
+
     // Buscar na página
     long found_ref = -1, pos = 0;
     for (int i = 0; i < page->n_keys; i++)
@@ -357,6 +412,7 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
     }
     else
     {
-
+        node_t *new_page;
+        return_value = _split(return_value, page->children[pos], page, promo_right_child, new_page, type);
     }
 }
