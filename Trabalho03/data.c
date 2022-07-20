@@ -576,6 +576,7 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
 
         // Adicionar no índice árvore-B
         // TODO -> inserir campos: id, rrn (essas duas variáveis mesmo)
+        driver(index_fp, 1, id, rrn);
     }
 
     update_n_reg_rem(data_fp, (-1) * pop_count, 1);
@@ -660,10 +661,12 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
             }
         }
 
+        int id = reg->id;
         free_register(reg);
 
         // Adicionar no índice árvore-B
         // TODO -> inserir campos: id, offset (essas duas variáveis mesmo)
+        driver(index_fp, 2, id, offset);
     }
 
     update_n_reg_rem(data_fp, (-1) * pop_count, 2);

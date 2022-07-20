@@ -12,6 +12,5 @@
  */
 
 void write_header(FILE *fp, int type);
-
 long search(FILE *fp, int type, int id);
 void driver(FILE *fp, int type, int id, int rrn);
