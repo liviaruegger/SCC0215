@@ -220,6 +220,13 @@ static split_node_t *copy_node(node_t *node, int type)
     }
     split_node->children[3] = node->children[3];
 
+    split_node->keys[3].id = -1;
+    if (type == 1)
+        split_node->keys[3].ref.rrn = -1;
+    else if (type == 2)
+        split_node->keys[3].ref.offset = -1;
+    split_node->children[4] = -1;
+
     return split_node;
 }
 
@@ -416,7 +423,7 @@ key_ref_t _split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child,
     return middle;
 }
 
-key_ref_t split(key_ref_t key, int i_rrn, node_t *page, int page_rrn, 
+key_ref_t split(key_ref_t key, int i_rrn, node_t *page, int page_rrn,
                 int *promo_right_child, FILE *fp, int type)
 {
     node_t *new_page = (node_t *)malloc(sizeof(node_t));
@@ -482,7 +489,7 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
         write_node(fp, page, type);
 
         return_value.id = -1;
-        
+
         free(page);
         return return_value;
     }
