@@ -401,10 +401,12 @@ key_ref_t _split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child,
 
     // Copia as chaves e filhos depois da chave promovida para NEW_PAGE
     reset_node(new_page, type);
-    new_page->keys[0] = split_node->keys[2];
+    new_page->keys[0] = split_node->keys[3];
     new_page->children[0] = split_node->children[3];
     new_page->children[1] = split_node->children[4];
     new_page->n_keys = 1;
+
+    // print_node(new_page); // DEBUG
 
     // Armazena para poder desalocar split_node
     key_ref_t middle = split_node->keys[2];
