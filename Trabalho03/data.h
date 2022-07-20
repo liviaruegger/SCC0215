@@ -17,8 +17,5 @@ void build_index_from_file_type2(FILE *data_fp, FILE *index_fp);
 void search_by_rrn_type1(FILE *fp, int rrn);
 void search_by_offset_type2(FILE *fp, long offset);
 
-void insert_registers_from_file_type1(FILE *data_fp, FILE *index_fp);
-void insert_registers_from_file_type2(FILE *data_fp, FILE *index_fp);
-
 void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers);
 void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers);
