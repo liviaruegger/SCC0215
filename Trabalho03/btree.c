@@ -374,10 +374,12 @@ long search(FILE *fp, int type, int id)
 key_ref_t _split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child,
                  node_t *new_page, FILE *fp, int type)
 {
+    //printf("Split: %d\n", key.id);
     // Copia as chaves e filhos para a struct.
     split_node_t *split_node = copy_node(page, type);
 
     // Insere e ordena a nova chave e o novo rrn.
+    //printf("i_rrn = %d\n", i_rrn);
     insert_key_into_split_node(split_node, key, i_rrn);
 
     // promo_right_child = RRN of NEW_PAGE(prox_RRN)
@@ -405,13 +407,19 @@ key_ref_t _split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child,
     page->children[1] = split_node->children[1];
     page->children[2] = split_node->children[2];
     page->n_keys = 2;
+    printf("\t Page:\n"); //DEBUG
+    print_node(page); //DEBUG
 
     // Copia as chaves e filhos depois da chave promovida para NEW_PAGE
     reset_node(new_page, type);
     new_page->keys[0] = split_node->keys[3];
     new_page->children[0] = split_node->children[3];
+    //printf("\t new_page->children[0] = %d\n", new_page->children[0]);
     new_page->children[1] = split_node->children[4];
+    //printf("\t new_page->children[1] = %d\n", new_page->children[1]);
     new_page->n_keys = 1;
+    printf("\t New_Page:\n"); // DEBUG
+    print_node(new_page); //DEBUG
 
     // print_node(new_page); // DEBUG
 
@@ -420,7 +428,7 @@ key_ref_t _split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child,
 
     free(split_node);
 
-    printf("middle = %d\n", middle.id);
+    //printf("middle = %d\n", middle.id);
     return middle;
 }
 
@@ -444,7 +452,7 @@ key_ref_t split(key_ref_t key, int i_rrn, node_t *page, int page_rrn,
 
     if (new_page) free(new_page);
 
-    printf("return_value2 = %d\n", return_value.id);
+    //printf("return_value2 = %d\n", return_value.id);
     return return_value;
 }
 
@@ -459,6 +467,10 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
     int node_size = (type == 1) ? NODE_SIZE_T1 : NODE_SIZE_T2;
     fseek(fp, (rrn + 1) * node_size, SEEK_SET);
     node_t *page = read_node(fp, type);
+    printf("page lida:\n"); // DEBUG
+    print_node(page);
+    char c;
+    //scanf("%c", &c); //DEBUG
 
     // Buscar na página
     long found_ref = -1, pos = 0;
@@ -479,6 +491,7 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
     else
         return_value = insert(fp, type, page->children[pos], key, promo_right_child);
 
+    //printf("\t return_value.id = %d\n", return_value.id);
     if (return_value.id == -1)
     {
         free(page);
@@ -492,14 +505,22 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
 
         return_value.id = -1;
 
+        printf("Apos (page < 3):\n"); // DEBUG
+        print_node(page);
+
         free(page);
         return return_value;
     }
     else
     {
-        return_value = split(key, page->children[pos], page, rrn, promo_right_child, fp, type);
+        printf("--- Split %d ---\n", key.id); //DEBUG
+        //printf("\t key.id = %d\n", key.id);
+        printf("\t i_rrn = %d\n", page->children[pos]); //DEBUG
+        //printf("\t pos = %ld\n", pos);
+        return_value = split(key, *promo_right_child, page, rrn, promo_right_child, fp, type);
 
         free(page);
+        printf("\t Promovido: %d\n", return_value.id); //DEBUG
         return return_value;
     }
 }
@@ -520,17 +541,17 @@ void driver(FILE *fp, int type, int id, long ref)
     else key.ref.offset = ref;
 
     int promo_right_child;
-
+    printf("\nComeço insercção: %d\n", key.id); //DEBUG
     key_ref_t return_value = insert(fp, type, rrn_root, key, &promo_right_child);
 
     // Chave retornada da inserção (precisa criar nó raiz)
     if (return_value.id != -1)
     {
-        printf("---- Raiz -----\n"); // DEBUG
+        printf("---- Nova Raiz -----\n"); // DEBUG
         fseek(fp, 5, SEEK_SET);
         fread(&next_rrn, sizeof(int), 1, fp);
         fread(&n_nodes, sizeof(int), 1, fp);
-        printf("next_rrn = %d; n_nodes = %d\n", next_rrn, n_nodes); // DEBUG
+        printf("\t next_rrn = %d; n_nodes = %d\n", next_rrn, n_nodes); // DEBUG
 
         // Cria o nó que será a raiz
         node_t *root = (node_t *)malloc(sizeof(node_t));
@@ -540,11 +561,13 @@ void driver(FILE *fp, int type, int id, long ref)
         root->type = ROOT;
         root->n_keys = 1;
         root->keys[0].id = return_value.id;
-        printf("root->keys[0].id = %d\n", root->keys[0].id);
-        if (type == 1) root->keys[0].ref.rrn = return_value.ref.rrn;
+        printf("\t root->keys[0].id = %d\n", root->keys[0].id);
+        if (type == 1) root->keys[0].ref.rrn = return_value.ref.rrn; //DEBUG
         else root->keys[0].ref.offset = return_value.ref.offset;
         root->children[0] = rrn_root;
+        printf("\t root->children[0] = %d\n", root->children[0]); //DEBUG
         root->children[1] = promo_right_child;
+        printf("\t root->children[1] = %d\n", root->children[1]); //DEBUG
 
         //fseek(fp, (next_rrn + 1) * node_size, SEEK_SET); Alternativa
         fseek(fp, 0, SEEK_END);
@@ -562,4 +585,5 @@ void driver(FILE *fp, int type, int id, long ref)
 
         free(root);
     }
+    printf("Fim inserção %d\n", key.id); //DEBUG
 }
