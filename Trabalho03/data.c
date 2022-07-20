@@ -512,8 +512,9 @@ void build_index_from_file_type2(FILE *data_fp, FILE *index_fp)
         if (reg->removed == '0')
         {
             id = reg->id;
-            printf("id = %d; offset = %ld\n", reg->id, ref);
+            //printf("id = %d; offset = %ld\n", reg->id, ref);
             // insert()
+            driver(index_fp, 2, id, ref);
         }
         free_register(reg);
     }
