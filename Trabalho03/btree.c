@@ -420,6 +420,7 @@ key_ref_t _split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child,
 
     free(split_node);
 
+    printf("middle = %d\n", middle.id);
     return middle;
 }
 
@@ -443,6 +444,7 @@ key_ref_t split(key_ref_t key, int i_rrn, node_t *page, int page_rrn,
 
     if (new_page) free(new_page);
 
+    printf("return_value2 = %d\n", return_value.id);
     return return_value;
 }
 
@@ -484,7 +486,7 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
     }
     else if (page->n_keys < 3)
     {
-        update_node(page, &key, *promo_right_child);
+        update_node(page, &return_value, *promo_right_child);
         fseek(fp, (rrn + 1) * node_size, SEEK_SET);
         write_node(fp, page, type);
 
@@ -495,7 +497,7 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
     }
     else
     {
-        split(key, page->children[pos], page, rrn, promo_right_child, fp, type);
+        return_value = split(key, page->children[pos], page, rrn, promo_right_child, fp, type);
 
         free(page);
         return return_value;
@@ -537,7 +539,10 @@ void driver(FILE *fp, int type, int id, long ref)
         // Atribuições do moodle
         root->type = ROOT;
         root->n_keys = 1;
-        root->keys[0] = return_value;
+        root->keys[0].id = return_value.id;
+        printf("root->keys[0].id = %d\n", root->keys[0].id);
+        if (type == 1) root->keys[0].ref.rrn = return_value.ref.rrn;
+        else root->keys[0].ref.offset = return_value.ref.offset;
         root->children[0] = rrn_root;
         root->children[1] = promo_right_child;
 
