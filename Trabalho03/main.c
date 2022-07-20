@@ -1,7 +1,7 @@
 /**
  * @file   main.c
- * @author Ana Lívia Ruegger Saldanha (N.USP 8586691)
- * @author André Kenji Hidaka Matsumoto (N. USP 12542689)
+ * @author Ana Lívia Ruegger Saldanha (N.USP 8586691) - 100%
+ * @author André Kenji Hidaka Matsumoto (N. USP 12542689) - 100%
  * @brief  SCC0215 - Organização de Arquivos
  *         Trabalho 03
  *

@@ -25,6 +25,9 @@
 #define INTERNAL '1'
 #define LEAF     '2'
 
+#define MAX_KEYS 3
+
+
 typedef union reference
 {
     int rrn; // Usado no tipo1
@@ -55,14 +58,6 @@ typedef struct split_node
     int children[5];
 }   split_node_t;
 
-typedef struct header
-{
-    char status;
-    int root;
-    int next_rrn;
-    int n_nodes;
-}   header_t;
-
 
 // ============================ FUNÇÕES AUXILIARES =============================
 
@@ -83,7 +78,8 @@ static int get_root(FILE *fp)
 }
 
 /**
- * @brief Adiciona uma nova chave em um nó de árvore-B.
+ * @brief Adiciona uma nova chave em uma struct nó de árvore-B 
+ * (em memória primária).
  *
  * @param node ponteiro para o nó de índice árvore-B;
  * @param key chave a ser inserida.
@@ -110,7 +106,13 @@ static void update_node(node_t *node, key_ref_t *key, int rrn)
     node->n_keys = node->n_keys + 1;
 }
 
-
+/**
+ * @brief "Reseta" uma struct nó de árvore-B, retirando todas as informações
+ * anteriormente contidas nela.
+ * 
+ * @param node ponteiro para o nó que deve ser resetado;
+ * @param type tipo de arquivo (1 ou 2).
+ */
 static void reset_node(node_t *node, int type)
 {
     for (int i = 0; i < 3; i++)
@@ -125,49 +127,73 @@ static void reset_node(node_t *node, int type)
     node->n_keys = 0;
 }
 
+/**
+ * @brief Copia as informações (chaves e filhos) de um nó de árvore-B para um nó
+ * especial temporário, com uma chave a mais, que será dividido na função split.
+ * 
+ * @param node ponteiro para o nó que será copiado;
+ * @param type tipo de arquivo (1 ou 2);
+ * @return nó temporário que será dividido na função split (split_node_t *). 
+ */
+static split_node_t *copy_node_into_split_node(node_t *node, int type)
+{
+    split_node_t *split_node = (split_node_t *)malloc(sizeof(split_node_t));
 
-// ============================ FUNÇÕES PARA DEBUG =============================
+    split_node->type = node->type;
+
+    for (int i = 0; i < 3; i++)
+    {
+        split_node->keys[i].id = node->keys[i].id;
+
+        if (type == 1)
+            split_node->keys[i].ref.offset = node->keys[i].ref.offset;
+        else if (type == 2)
+            split_node->keys[i].ref.offset = node->keys[i].ref.offset;
+
+        split_node->children[i] = node->children[i];
+    }
+    split_node->children[3] = node->children[3];
+
+    split_node->keys[3].id = -1;
+    if (type == 1)
+        split_node->keys[3].ref.rrn = -1;
+    else if (type == 2)
+        split_node->keys[3].ref.offset = -1;
+    split_node->children[4] = -1;
+
+    return split_node;
+}
 
 /**
- * @brief Função auxiliar, apenas para debug, que imprime na saída padrão as
- * informações referentes a um nó de árvore-B.
- *
- * @param node ponteiro para o nó que deve ser impresso (struct node).
+ * @brief Insere uma nova chave em um 'split node' (um nó especial temporário,
+ * contendo uma chave a mais, que será dividido na função split).
+ * 
+ * @param node ponteiro para um nó temporário (split node);
+ * @param key chave que deve ser inserida;
+ * @param rrn referência do nó filho à direita da chave.
  */
-static void print_node(node_t *node)
+static void insert_key_into_split_node(split_node_t *node, key_ref_t key, int rrn)
 {
-    printf("Type: %c / Number of keys = %d\n", node->type, node->n_keys);
+    // Procura o índice em que a chave sera inserida.
+    int i = 0;
+    while (node->keys[i].id < key.id && i < MAX_KEYS)
+        i++;
 
-    printf("   ");
-    for (int i = 0; i < 3; i++) printf("|%4d", node->keys[i].id);
-    printf("|\n");
+    // Move as chaves necessárias para a direita.
+    for (int j = MAX_KEYS; j > i; j--)
+    {
+        node->keys[j].id  = node->keys[j - 1].id;
+        node->keys[j].ref = node->keys[j - 1].ref;
+        node->children[j + 1] = node->children[j];
+    }
 
-    for (int i = 0; i < 4; i++) printf("%4d ", node->children[i]);
-    printf("\n");
+    node->keys[i].id  = key.id;
+    node->keys[i].ref = key.ref;
+    node->children[i + 1] = rrn;
 }
 
 
 // ============================ FUNÇÕES DE LEITURA =============================
-
-/**
- * @brief Lê o cabeçalho de árvore-B de um arquivo binário de índice.
- *
- * @param fp ponteiro para o arquivo de índice árvore-B;
- * @return ponteiro para o cabeçalho lido (header_t *).
- */
-static header_t *read_header(FILE *fp)
-{
-    fseek(fp, 0, SEEK_SET);
-
-    header_t *header = (header_t *)malloc(sizeof(header_t));
-
-    fread(&header->status,   sizeof(char), 1, fp);
-    fread(&header->root,     sizeof(int),  1, fp);
-    fread(&header->next_rrn, sizeof(int),  1, fp);
-    fread(&header->n_nodes,  sizeof(int),  1, fp);
-
-    return header;
-}
 
 /**
  * @brief Lê um nó de árvore-B de um arquivo binário de índice.
@@ -197,56 +223,6 @@ static node_t *read_node(FILE *fp, int type)
         fread(&node->children[i], sizeof(int), 1, fp);
 
     return node;
-}
-
-
-static split_node_t *copy_node(node_t *node, int type)
-{
-    split_node_t *split_node = (split_node_t *)malloc(sizeof(split_node_t));
-
-    split_node->type = node->type;
-
-    for (int i = 0; i < 3; i++)
-    {
-        split_node->keys[i].id = node->keys[i].id;
-
-        if (type == 1)
-            split_node->keys[i].ref.offset = node->keys[i].ref.offset;
-        else if (type == 2)
-            split_node->keys[i].ref.offset = node->keys[i].ref.offset;
-
-        split_node->children[i] = node->children[i];
-    }
-    split_node->children[3] = node->children[3];
-
-    split_node->keys[3].id = -1;
-    if (type == 1)
-        split_node->keys[3].ref.rrn = -1;
-    else if (type == 2)
-        split_node->keys[3].ref.offset = -1;
-    split_node->children[4] = -1;
-
-    return split_node;
-}
-
-static void insert_key_into_split_node(split_node_t *node, key_ref_t key, int rrn)
-{
-    // Procura o índice em que a chave sera inserida.
-    int i = 0;
-    while (node->keys[i].id < key.id && i != 3)
-        i++;
-
-    // Move as chaves necessárias para a direita.
-    for (int j = 3; j > i; j--)
-    {
-        node->keys[j].id  = node->keys[j - 1].id;
-        node->keys[j].ref = node->keys[j - 1].ref;
-        node->children[j + 1] = node->children[j];
-    }
-
-    node->keys[i].id  = key.id;
-    node->keys[i].ref = key.ref;
-    node->children[i + 1] = rrn;
 }
 
 
@@ -291,7 +267,6 @@ void write_header(FILE *fp, int type)
  */
 static void write_node(FILE *fp, node_t *node, int type)
 {
-    if (!node) printf("aqui deu pau\n"); // DEBUG
     fwrite(&node->type,   sizeof(char), 1, fp);
     fwrite(&node->n_keys, sizeof(int),  1, fp);
 
@@ -368,24 +343,31 @@ long search(FILE *fp, int type, int id)
 
 // ============================ FUNÇÕES DE INSERÇÃO ============================
 
-// Dúvida em relação a oq acontece quando a promoção da chave chega na raiz
-
+/**
+ * @brief Função Split: este algoritmo faz o tratamento do overflow causado
+ * pela inserção de uma chave na árvore-B, retornando a chave promovida.
+ * 
+ * @param key nova chave a ser inserida;
+ * @param i_rrn RRN do filho à direita da nova chave a ser inserida;
+ * @param page página de disco corrente;
+ * @param promo_right_child filho à direita da chave promovida (ponteiro);
+ * @param new_page nova página de disco;
+ * @param fp ponteiro para o arquivo binário de índice árvore-B;
+ * @param type tipo de arquivo (1 ou 2);
+ * @return chave promovida (key_ref_t). 
+ */
 key_ref_t _split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child,
                  node_t *new_page, FILE *fp, int type)
 {
-    //printf("Split: %d\n", key.id);
     // Copia as chaves e filhos para a struct.
-    split_node_t *split_node = copy_node(page, type);
+    split_node_t *split_node = copy_node_into_split_node(page, type);
 
     // Insere e ordena a nova chave e o novo rrn.
-    //printf("i_rrn = %d\n", i_rrn);
     insert_key_into_split_node(split_node, key, i_rrn);
 
     // promo_right_child = RRN of NEW_PAGE(prox_RRN)
     fseek(fp, 5, SEEK_SET);
     fread(promo_right_child, sizeof(int), 1, fp);
-
-    // printf("promo_right_child = %d\n", *promo_right_child); // DEBUG
 
     // Atualiza o cabeçalho
     int n_nodes;
@@ -409,39 +391,42 @@ key_ref_t _split(key_ref_t key, int i_rrn, node_t *page, int *promo_right_child,
         new_page->type = INTERNAL;
     }
 
-    // Copia as chaves e filhos antes da chave promovida para PAGE
+    // Copia as chaves e filhos à esquerda da chave promovida para PAGE
     reset_node(page, type);
-    page->keys[0] = split_node->keys[0];
-    page->keys[1] = split_node->keys[1];
-    page->children[0] = split_node->children[0];
-    page->children[1] = split_node->children[1];
-    page->children[2] = split_node->children[2];
+    for (int i = 0; i < MAX_KEYS - 1; i++)
+        page->keys[i] = split_node->keys[i];
+    for (int i = 0; i < MAX_KEYS; i++)
+        page->children[i] = split_node->children[i];
     page->n_keys = 2;
-    //printf("\t Page:\n"); //DEBUG
-    //print_node(page); //DEBUG
 
-    // Copia as chaves e filhos depois da chave promovida para NEW_PAGE
+    // Copia chave e filhos à direita da chave promovida para NEW_PAGE
     reset_node(new_page, type);
-    new_page->keys[0] = split_node->keys[3];
-    new_page->children[0] = split_node->children[3];
-    //printf("\t new_page->children[0] = %d\n", new_page->children[0]);
-    new_page->children[1] = split_node->children[4];
-    //printf("\t new_page->children[1] = %d\n", new_page->children[1]);
+    new_page->keys[0] = split_node->keys[MAX_KEYS]; // Copia chave
+    for (int i = 0; i < MAX_KEYS - 1; i++) // Copia filhos
+        new_page->children[i] = split_node->children[i + MAX_KEYS];
     new_page->n_keys = 1;
-    //printf("\t New_Page:\n"); // DEBUG
-    //print_node(new_page); //DEBUG
-
-    // print_node(new_page); // DEBUG
 
     // Armazena para poder desalocar split_node
     key_ref_t middle = split_node->keys[2];
 
     free(split_node);
 
-    //printf("middle = %d\n", middle.id);
     return middle;
 }
 
+/**
+ * @brief Função Split: faz o tratamento do overflow causado pela inserção de
+ * uma nova chave e escreve os nós modificados do árquivo de índice árvore-B.
+ * 
+ * @param key nova chave a ser inserida;
+ * @param i_rrn RRN do filho à direita da nova chave a ser inserida;
+ * @param page página de disco corrente;
+ * @param page_rrn RRN da página no arquivo;
+ * @param promo_right_child filho à direita da chave promovida (ponteiro);
+ * @param fp ponteiro para o arquivo binário de índice árvore-B;
+ * @param type tipo de arquivo (1 ou 2);
+ * @return chave promovida (key_ref_t).
+ */
 key_ref_t split(key_ref_t key, int i_rrn, node_t *page, int page_rrn,
                 int *promo_right_child, FILE *fp, int type)
 {
@@ -456,17 +441,28 @@ key_ref_t split(key_ref_t key, int i_rrn, node_t *page, int page_rrn,
     fseek(fp, (page_rrn + 1) * node_size, SEEK_SET);
     if (page) write_node(fp, page, type);
 
-    // ESCREVE NEW_PAGE
+    // Escreve NEW_PAGE
     fseek(fp, (*promo_right_child + 1) * node_size, SEEK_SET);
     if (new_page) write_node(fp, new_page, type);
 
     if (new_page) free(new_page);
 
-    //printf("return_value2 = %d\n", return_value.id);
     return return_value;
 }
 
-key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_child)
+/**
+ * @brief Função recursiva que realiza a inserções na árvore-B, tratando os
+ * casos de overflow com procedimentos de split e promoção.
+ * 
+ * @param fp ponteiro para o arquivo binário de índice árvore-B;
+ * @param type tipo de arquivo (1 ou 2);
+ * @param rrn RRN da página a ser pesquisada;
+ * @param key chave a ser inserida;
+ * @param promo_right_child filho à direita da chave promovida (ponteiro);
+ * @return struct key_ref que pode ser a chave promovida ou apenas carregar
+ * o valor id = -1 nos casos em que não há promoção (key_ref_t).
+ */
+static key_ref_t _insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_child)
 {
     if (rrn == -1)
     {
@@ -477,10 +473,7 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
     int node_size = (type == 1) ? NODE_SIZE_T1 : NODE_SIZE_T2;
     fseek(fp, (rrn + 1) * node_size, SEEK_SET);
     node_t *page = read_node(fp, type);
-    //printf("page lida:\n"); // DEBUG
-    //print_node(page);
     char c;
-    //scanf("%c", &c); //DEBUG
 
     // Buscar na página
     long found_ref = -1, pos = 0;
@@ -496,12 +489,9 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
 
     key_ref_t return_value;
 
-    if (found_ref != -1) // Chave repetida, não precisa inserir
-        return_value.id = -1;
-    else
-        return_value = insert(fp, type, page->children[pos], key, promo_right_child);
+    if (found_ref != -1) return_value.id = -1; // Chave repetida, não precisa inserir
+    else return_value = _insert(fp, type, page->children[pos], key, promo_right_child);
 
-    //printf("\t return_value.id = %d\n", return_value.id);
     if (return_value.id == -1)
     {
         free(page);
@@ -515,34 +505,35 @@ key_ref_t insert(FILE *fp, int type, int rrn, key_ref_t key, int *promo_right_ch
 
         return_value.id = -1;
 
-        //printf("Apos (page < 3):\n"); // DEBUG
-        //print_node(page);
-
         free(page);
         return return_value;
     }
     else
     {
-        //printf("--- Split %d ---\n", key.id); //DEBUG
-        //printf("\t key.id = %d\n", key.id);
-        //printf("\t i_rrn = %d\n", page->children[pos]); //DEBUG
-        //printf("\t pos = %ld\n", pos);
-        return_value = split(return_value   , *promo_right_child, page, rrn, promo_right_child, fp, type);
+        return_value = split(return_value, *promo_right_child, page, rrn, promo_right_child, fp, type);
 
         free(page);
-        //printf("\t Promovido: %d\n", return_value.id); //DEBUG
         return return_value;
     }
 }
 
-void driver(FILE *fp, int type, int id, long ref)
+/**
+ * @brief Função que inicializa o processo de inserção na árvore-B e realiza
+ * o tratamento da raiz.
+ * 
+ * @param fp ponteiro para o arquivo binário de índice árvore-B;
+ * @param type tipo de arquivo (1 ou 2);
+ * @param id chave;
+ * @param ref valor de referência ligado à chave (RRN ou offset, a depender
+ * do tipo de arquivo).
+ */
+void insert_into_index(FILE *fp, int type, int id, long ref)
 {
     int rrn_root, next_rrn, n_nodes;
 
     // Pega nó da raiz
     fseek(fp, 1, SEEK_SET);
     fread(&rrn_root, sizeof(int), 1, fp);
-    // printf("rrn root = %d\n", rrn_root); // DEBUG
 
     // Cria a chave a ser inserida
     key_ref_t key;
@@ -551,17 +542,14 @@ void driver(FILE *fp, int type, int id, long ref)
     else key.ref.offset = ref;
 
     int promo_right_child;
-    //printf("\nComeço insercção: %d\n", key.id); //DEBUG
-    key_ref_t return_value = insert(fp, type, rrn_root, key, &promo_right_child);
+    key_ref_t return_value = _insert(fp, type, rrn_root, key, &promo_right_child);
 
     // Chave retornada da inserção (precisa criar nó raiz)
     if (return_value.id != -1)
     {
-        //printf("---- Nova Raiz -----\n"); // DEBUG
         fseek(fp, 5, SEEK_SET);
         fread(&next_rrn, sizeof(int), 1, fp);
         fread(&n_nodes, sizeof(int), 1, fp);
-        //printf("\t next_rrn = %d; n_nodes = %d\n", next_rrn, n_nodes); // DEBUG
 
         // Cria o nó que será a raiz
         node_t *root = (node_t *)malloc(sizeof(node_t));
@@ -571,13 +559,10 @@ void driver(FILE *fp, int type, int id, long ref)
         root->type = ROOT;
         root->n_keys = 1;
         root->keys[0].id = return_value.id;
-        //printf("\t root->keys[0].id = %d\n", root->keys[0].id);
-        if (type == 1) root->keys[0].ref.rrn = return_value.ref.rrn; //DEBUG
+        if (type == 1) root->keys[0].ref.rrn = return_value.ref.rrn;
         else root->keys[0].ref.offset = return_value.ref.offset;
         root->children[0] = rrn_root;
-        //printf("\t root->children[0] = %d\n", root->children[0]); //DEBUG
         root->children[1] = promo_right_child;
-        //printf("\t root->children[1] = %d\n", root->children[1]); //DEBUG
 
         //fseek(fp, (next_rrn + 1) * node_size, SEEK_SET); Alternativa
         fseek(fp, 0, SEEK_END);
@@ -595,5 +580,4 @@ void driver(FILE *fp, int type, int id, long ref)
 
         free(root);
     }
-    //printf("Fim inserção %d\n", key.id); //DEBUG
 }

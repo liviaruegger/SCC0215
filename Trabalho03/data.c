@@ -386,6 +386,82 @@ static reg_t *read_register_from_stdin(int type)
     return reg;
 }
 
+/**
+ * @brief Lê um arquivo de dados do tipo 1 (registros de tamanho fixo) e
+ * constrói um índice árvore-B a partir dele.
+ * 
+ * @param data_fp ponteiro para o arquivo binário de dados;
+ * @param index_fp ponteiro para o arquivo de índice árvore-B a ser escrito.
+ */
+void build_index_from_file_type1(FILE *data_fp, FILE *index_fp)
+{
+    // Escreve o cabeçalho no arquivo de índice.
+    write_header(index_fp, 1);
+
+    // Armazena o tamanho do arquivo de dados.
+    fseek(data_fp, 0, SEEK_END);
+    long file_size = ftell(data_fp);
+
+    int id, ref;
+
+    for (long offset = DATA_HEADER_SIZE_T1; offset < file_size; offset += REGISTER_SIZE_T1)
+    {
+        fseek(data_fp, offset, SEEK_SET);
+
+        ref = (ftell(data_fp) - DATA_HEADER_SIZE_T1) / REGISTER_SIZE_T1;
+        reg_t *reg = read_register_from_bin(data_fp, 1);
+
+        if (reg->removed == '0')
+        {
+            id = reg->id;
+            insert_into_index(index_fp, 1, id, ref);
+        }
+
+        free_register(reg);
+    }
+
+    update_header_status(index_fp, '1');
+}
+
+/**
+ * @brief Lê um arquivo de dados do tipo 2 (registros de tamanho variável) e
+ * constrói um índice árvore-B a partir dele.
+ * 
+ * @param data_fp ponteiro para o arquivo binário de dados;
+ * @param index_fp ponteiro para o arquivo de índice árvore-B a ser escrito.
+ */
+void build_index_from_file_type2(FILE *data_fp, FILE *index_fp)
+{
+    // Escreve o cabeçalho no arquivo de índice.
+    write_header(index_fp, 2);
+
+    // Armazena o tamanho do arquivo de dados.
+    fseek(data_fp, 0, SEEK_END);
+    long file_size = ftell(data_fp);
+
+    int id;
+    long ref;
+
+    fseek(data_fp, DATA_HEADER_SIZE_T2, SEEK_SET);
+
+    while (ftell(data_fp) < file_size)
+    {
+        ref = ftell(data_fp);
+        reg_t *reg = read_register_from_bin(data_fp, 2);
+
+        if (reg->removed == '0')
+        {
+            id = reg->id;
+            insert_into_index(index_fp, 2, id, ref);
+        }
+        
+        free_register(reg);
+    }
+
+    update_header_status(index_fp, '1');
+}
+
+
 // ============================ FUNÇÕES DE ESCRITA =============================
 
 /**
@@ -458,69 +534,6 @@ static void write_register(FILE *fp, reg_t *reg, int type)
     }
 }
 
-void build_index_from_file_type1(FILE *data_fp, FILE *index_fp)
-{
-    // Escreve o cabeçalho no arquivo de índice.
-    write_header(index_fp, 1);
-
-    // Armazena o tamanho do arquivo de dados.
-    fseek(data_fp, 0, SEEK_END);
-    long file_size = ftell(data_fp);
-
-    int id, ref;
-
-    for (long offset = DATA_HEADER_SIZE_T1; offset < file_size; offset += REGISTER_SIZE_T1)
-    {
-        fseek(data_fp, offset, SEEK_SET);
-
-        ref = (ftell(data_fp) - DATA_HEADER_SIZE_T1) / REGISTER_SIZE_T1;
-        reg_t *reg = read_register_from_bin(data_fp, 1);
-
-        if (reg->removed == '0')
-        {
-            id = reg->id;
-            //printf("id = %d; rrn = %d\n", reg->id, ref);
-            // insert()
-            driver(index_fp, 1, id, ref);
-        }
-
-        free_register(reg);
-    }
-
-    update_header_status(index_fp, '1');
-}
-
-void build_index_from_file_type2(FILE *data_fp, FILE *index_fp)
-{
-    // Escreve o cabeçalho no arquivo de índice.
-    write_header(index_fp, 2);
-
-    // Armazena o tamanho do arquivo de dados.
-    fseek(data_fp, 0, SEEK_END);
-    long file_size = ftell(data_fp);
-
-    int id;
-    long ref;
-
-    fseek(data_fp, DATA_HEADER_SIZE_T2, SEEK_SET);
-
-    while (ftell(data_fp) < file_size)
-    {
-        ref = ftell(data_fp);
-        reg_t *reg = read_register_from_bin(data_fp, 2);
-
-        if (reg->removed == '0')
-        {
-            id = reg->id;
-            //printf("id = %d; offset = %ld\n", reg->id, ref);
-            // insert()
-            driver(index_fp, 2, id, ref);
-        }
-        free_register(reg);
-    }
-    update_header_status(index_fp, '1');
-}
-
 /**
  * @brief Adiciona novo(s) registro(s) a um arquivo de dados e atualiza o
  * arquivo de índice.
@@ -575,9 +588,7 @@ void insert_new_registers_type1(FILE *data_fp, FILE *index_fp, int n_registers)
         write_register(data_fp, reg, 1);
         free_register(reg);
 
-        // Adicionar no índice árvore-B
-        // TODO -> inserir campos: id, rrn (essas duas variáveis mesmo)
-        driver(index_fp, 1, id, rrn);
+        insert_into_index(index_fp, 1, id, rrn);
     }
 
     update_n_reg_rem(data_fp, (-1) * pop_count, 1);
@@ -665,9 +676,7 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
         int id = reg->id;
         free_register(reg);
 
-        // Adicionar no índice árvore-B
-        // TODO -> inserir campos: id, offset
-        driver(index_fp, 2, id, offset);
+        insert_into_index(index_fp, 2, id, offset);
     }
 
     update_n_reg_rem(data_fp, (-1) * pop_count, 2);
@@ -676,6 +685,7 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
     update_header_status(index_fp, '1');
     update_header_status(data_fp,  '1');
 }
+
 
 // ============================ FUNÇÕES PARA BUSCA =============================
 

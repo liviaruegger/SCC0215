@@ -13,4 +13,4 @@
 
 void write_header(FILE *fp, int type);
 long search(FILE *fp, int type, int id);
-void driver(FILE *fp, int type, int id, int rrn);
+void insert_into_index(FILE *fp, int type, int id, int rrn);
