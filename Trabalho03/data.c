@@ -479,7 +479,7 @@ void build_index_from_file_type1(FILE *data_fp, FILE *index_fp)
         if (reg->removed == '0')
         {
             id = reg->id;
-            printf("id = %d; rrn = %d\n", reg->id, ref);
+            //printf("id = %d; rrn = %d\n", reg->id, ref);
             // insert()
             driver(index_fp, 1, id, ref);
         }
