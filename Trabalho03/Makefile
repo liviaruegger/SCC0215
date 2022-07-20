@@ -6,9 +6,6 @@ all: $(objects)
 run:
 	./programaTrab
 
-test: all
-	./test.sh
-
 val:
 	valgrind --tool=memcheck --leak-check=full -s --track-origins=yes --show-leak-kinds=all --show-reachable=yes ./programaTrab
 
