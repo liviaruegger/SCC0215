@@ -665,7 +665,7 @@ void insert_new_registers_type2(FILE *data_fp, FILE *index_fp, int n_registers)
         free_register(reg);
 
         // Adicionar no índice árvore-B
-        // TODO -> inserir campos: id, offset (essas duas variáveis mesmo)
+        // TODO -> inserir campos: id, offset
         driver(index_fp, 2, id, offset);
     }
 
